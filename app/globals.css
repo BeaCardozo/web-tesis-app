@@ -3,6 +3,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* CaracasAhorra Color Palette */
+  --primary: #BADD71;
+  --primary-dark: #A5C87C;
+  --primary-light: #9AD697;
+  --secondary: #44CAF5;
+  --accent-green-dark: #316746;
+  --accent-green: #437D68;
+  --accent-olive: #818A49;
+  --accent-teal: #2F655E;
+  --accent-pastel: #B1C7A1;
+  --button-green: #77A14B;
 }
 
 @theme inline {
@@ -10,6 +22,18 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Custom colors */
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-accent-green-dark: var(--accent-green-dark);
+  --color-accent-green: var(--accent-green);
+  --color-accent-olive: var(--accent-olive);
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-pastel: var(--accent-pastel);
+  --color-button-green: var(--button-green);
 }
 
 @media (prefers-color-scheme: dark) {
