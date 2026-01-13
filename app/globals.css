@@ -8,12 +8,15 @@
   --primary: #BADD71;
   --primary-dark: #A5C87C;
   --primary-light: #9AD697;
+  --primary-lighter: #D4ECA5;
+  --primary-lightest: #C9F0C3;
   --secondary: #44CAF5;
   --accent-green-dark: #316746;
   --accent-green: #437D68;
   --accent-olive: #818A49;
   --accent-teal: #2F655E;
   --accent-pastel: #B1C7A1;
+  --accent-pastel-light: #D5E4CA;
   --button-green: #77A14B;
 }
 
@@ -27,12 +30,15 @@
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
   --color-primary-light: var(--primary-light);
+  --color-primary-lighter: var(--primary-lighter);
+  --color-primary-lightest: var(--primary-lightest);
   --color-secondary: var(--secondary);
   --color-accent-green-dark: var(--accent-green-dark);
   --color-accent-green: var(--accent-green);
   --color-accent-olive: var(--accent-olive);
   --color-accent-teal: var(--accent-teal);
   --color-accent-pastel: var(--accent-pastel);
+  --color-accent-pastel-light: var(--accent-pastel-light);
   --color-button-green: var(--button-green);
 }
 

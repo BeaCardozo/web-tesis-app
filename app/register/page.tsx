@@ -35,7 +35,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary via-primary-light to-accent-pastel flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-primary-lighter via-primary-lightest to-accent-pastel-light flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
