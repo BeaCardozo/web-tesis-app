@@ -11,7 +11,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useState } from 'react';
+import { useSidebar } from '../context/SidebarContext';
 
 interface NavItem {
   name: string;
@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggle } = useSidebar();
 
   const handleLogout = () => {
     logout();
@@ -65,7 +65,7 @@ export function Sidebar() {
           <ShoppingCart className="text-button-green mx-auto" size={28} />
         )}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggle}
           className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
         >
           {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
