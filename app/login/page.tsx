@@ -2,22 +2,45 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login, isLoading } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     remember: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login attempt:', formData);
-    // Aquí se conectará con el backend cuando esté listo
+    setError('');
+
+    const result = await login(formData.email, formData.password);
+
+    if (result.success) {
+      // Obtener el usuario del localStorage para verificar el rol
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        // Redirigir según el rol
+        if (user.role === 'Administrador') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/usuario');
+        }
+      }
+    } else {
+      setError(result.error || 'Error al iniciar sesión');
+    }
   };
 
   return (
@@ -35,6 +58,13 @@ export default function LoginPage() {
         {/* Formulario */}
         <div className="bg-white rounded-3xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Mensaje de error */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
             {/* Email */}
             <Input
               type="email"
@@ -72,7 +102,9 @@ export default function LoginPage() {
             </div>
 
             {/* Botón de login */}
-            <Button type="submit">Iniciar Sesión</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            </Button>
           </form>
 
           {/* Enlaces */}
