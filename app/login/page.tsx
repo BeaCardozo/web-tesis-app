@@ -34,6 +34,8 @@ export default function LoginPage() {
         // Redirigir según el rol
         if (user.role === 'Administrador') {
           router.push('/admin/dashboard');
+        } else if (user.role === 'Analista') {
+          router.push('/analista/dashboard');
         } else {
           router.push('/usuario');
         }

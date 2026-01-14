@@ -2,7 +2,7 @@
 // DATOS MOCK - Reemplazar con llamadas a API
 // ============================================
 
-export type UserRole = 'Administrador' | 'Usuario';
+export type UserRole = 'Administrador' | 'Usuario' | 'Analista';
 
 export interface User {
   id: string;
@@ -14,6 +14,7 @@ export interface User {
   lastLogin: string;
   status: 'activo' | 'inactivo';
   avatar?: string;
+  supermarketId?: string; // Solo para Analistas - ID del supermercado al que pertenecen
 }
 
 export interface Supermarket {
@@ -130,6 +131,17 @@ export const mockUsers: User[] = [
     lastLogin: '2025-01-09',
     status: 'activo',
   },
+  {
+    id: '9',
+    name: 'Roberto Analista',
+    email: 'analista@excelsior.com',
+    password: 'analista123', // Solo para desarrollo
+    role: 'Analista',
+    createdAt: '2024-03-10',
+    lastLogin: '2025-01-14',
+    status: 'activo',
+    supermarketId: '1', // Excelsior Gama
+  },
 ];
 
 // ============================================
@@ -243,3 +255,125 @@ export const cheapestByCategory = [
   { category: 'Limpieza', supermarket: 'Farmatodo', difference: -18 },
   { category: 'Higiene', supermarket: 'Locatel', difference: -10 },
 ];
+
+// ============================================
+// DATOS PARA ANALISTAS (por supermercado)
+// ============================================
+
+export interface SupermarketStats {
+  supermarketId: string;
+  totalProducts: number;
+  productsUpdatedToday: number;
+  productsOutdated: number;
+  averagePrice: number;
+  priceChangeLastWeek: number; // Porcentaje
+  totalViews: number;
+  viewsChangeLastWeek: number; // Porcentaje
+  positionInRanking: number;
+  lastUpload: string;
+}
+
+export interface UploadHistory {
+  id: string;
+  supermarketId: string;
+  fileName: string;
+  uploadDate: string;
+  productsCount: number;
+  status: 'completado' | 'procesando' | 'error';
+  errors?: number;
+}
+
+// Estadísticas por supermercado (indexadas por supermarketId)
+export const supermarketStats: Record<string, SupermarketStats> = {
+  '1': { // Excelsior Gama
+    supermarketId: '1',
+    totalProducts: 1245,
+    productsUpdatedToday: 89,
+    productsOutdated: 156,
+    averagePrice: 8.75,
+    priceChangeLastWeek: 2.3,
+    totalViews: 4521,
+    viewsChangeLastWeek: 12.5,
+    positionInRanking: 1,
+    lastUpload: '2025-01-14 09:30',
+  },
+  '2': { // Central Madeirense
+    supermarketId: '2',
+    totalProducts: 1189,
+    productsUpdatedToday: 67,
+    productsOutdated: 203,
+    averagePrice: 8.92,
+    priceChangeLastWeek: 1.8,
+    totalViews: 3892,
+    viewsChangeLastWeek: 8.2,
+    positionInRanking: 2,
+    lastUpload: '2025-01-13 14:15',
+  },
+};
+
+// Productos del supermercado (para el analista)
+export interface SupermarketProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  lastUpdated: string;
+  status: 'actualizado' | 'desactualizado' | 'nuevo';
+}
+
+export const supermarketProducts: Record<string, SupermarketProduct[]> = {
+  '1': [ // Excelsior Gama
+    { id: 'p1', name: 'Leche Completa 1L', category: 'Lácteos', price: 3.50, lastUpdated: '2025-01-14', status: 'actualizado' },
+    { id: 'p2', name: 'Arroz Premium 1kg', category: 'Cereales', price: 2.80, lastUpdated: '2025-01-14', status: 'actualizado' },
+    { id: 'p3', name: 'Aceite Vegetal 1L', category: 'Abarrotes', price: 4.25, lastUpdated: '2025-01-13', status: 'actualizado' },
+    { id: 'p4', name: 'Harina PAN 1kg', category: 'Abarrotes', price: 2.15, lastUpdated: '2025-01-12', status: 'desactualizado' },
+    { id: 'p5', name: 'Azúcar 1kg', category: 'Abarrotes', price: 1.95, lastUpdated: '2025-01-14', status: 'actualizado' },
+    { id: 'p6', name: 'Pollo Entero kg', category: 'Carnes', price: 5.80, lastUpdated: '2025-01-14', status: 'nuevo' },
+    { id: 'p7', name: 'Carne Molida kg', category: 'Carnes', price: 8.50, lastUpdated: '2025-01-10', status: 'desactualizado' },
+    { id: 'p8', name: 'Queso Blanco kg', category: 'Lácteos', price: 7.25, lastUpdated: '2025-01-14', status: 'actualizado' },
+  ],
+};
+
+// Historial de cargas
+export const uploadHistory: UploadHistory[] = [
+  { id: 'u1', supermarketId: '1', fileName: 'productos_enero_14.csv', uploadDate: '2025-01-14 09:30', productsCount: 89, status: 'completado' },
+  { id: 'u2', supermarketId: '1', fileName: 'actualizacion_precios.csv', uploadDate: '2025-01-13 16:45', productsCount: 234, status: 'completado' },
+  { id: 'u3', supermarketId: '1', fileName: 'productos_nuevos.csv', uploadDate: '2025-01-12 11:20', productsCount: 45, status: 'completado', errors: 3 },
+  { id: 'u4', supermarketId: '1', fileName: 'carga_masiva.csv', uploadDate: '2025-01-10 08:00', productsCount: 567, status: 'completado' },
+  { id: 'u5', supermarketId: '1', fileName: 'precios_diciembre.csv', uploadDate: '2024-12-28 10:15', productsCount: 189, status: 'completado' },
+];
+
+// Ventas/Comparaciones por categoría del supermercado
+export const supermarketCategoryStats: Record<string, { category: string; views: number; position: number }[]> = {
+  '1': [ // Excelsior Gama
+    { category: 'Lácteos', views: 892, position: 2 },
+    { category: 'Carnes', views: 756, position: 1 },
+    { category: 'Bebidas', views: 1245, position: 1 },
+    { category: 'Abarrotes', views: 634, position: 3 },
+    { category: 'Limpieza', views: 423, position: 4 },
+  ],
+};
+
+// Comparación de precios con competencia
+export const priceComparison: Record<string, { product: string; ownPrice: number; avgCompetition: number; difference: number }[]> = {
+  '1': [ // Excelsior Gama
+    { product: 'Leche Completa 1L', ownPrice: 3.50, avgCompetition: 3.65, difference: -4.1 },
+    { product: 'Arroz Premium 1kg', ownPrice: 2.80, avgCompetition: 2.75, difference: 1.8 },
+    { product: 'Aceite Vegetal 1L', ownPrice: 4.25, avgCompetition: 4.50, difference: -5.6 },
+    { product: 'Harina PAN 1kg', ownPrice: 2.15, avgCompetition: 2.10, difference: 2.4 },
+    { product: 'Azúcar 1kg', ownPrice: 1.95, avgCompetition: 2.05, difference: -4.9 },
+  ],
+};
+
+// Tendencia de precios del supermercado (últimos 7 días)
+export const priceTrend: Record<string, { day: string; avgPrice: number }[]> = {
+  '1': [ // Excelsior Gama
+    { day: 'Lun', avgPrice: 8.52 },
+    { day: 'Mar', avgPrice: 8.58 },
+    { day: 'Mié', avgPrice: 8.61 },
+    { day: 'Jue', avgPrice: 8.65 },
+    { day: 'Vie', avgPrice: 8.70 },
+    { day: 'Sáb', avgPrice: 8.73 },
+    { day: 'Dom', avgPrice: 8.75 },
+  ],
+};
