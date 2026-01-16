@@ -10,7 +10,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Store,
-  Menu
+  Menu,
+  Package,
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -29,9 +32,24 @@ const navItems: NavItem[] = [
     icon: <LayoutDashboard size={20} />,
   },
   {
+    name: 'Productos',
+    href: '/analista/productos',
+    icon: <Package size={20} />,
+  },
+  {
     name: 'Cargar Datos',
     href: '/analista/cargas',
     icon: <Upload size={20} />,
+  },
+  {
+    name: 'Historial Precios',
+    href: '/analista/historial',
+    icon: <TrendingUp size={20} />,
+  },
+  {
+    name: 'Reportes',
+    href: '/analista/reportes',
+    icon: <FileText size={20} />,
   },
 ];
 

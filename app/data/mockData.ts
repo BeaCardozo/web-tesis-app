@@ -319,18 +319,89 @@ export interface SupermarketProduct {
   price: number;
   lastUpdated: string;
   status: 'actualizado' | 'desactualizado' | 'nuevo';
+  sku?: string;
 }
 
 export const supermarketProducts: Record<string, SupermarketProduct[]> = {
   '1': [ // Excelsior Gama
-    { id: 'p1', name: 'Leche Completa 1L', category: 'Lácteos', price: 3.50, lastUpdated: '2025-01-14', status: 'actualizado' },
-    { id: 'p2', name: 'Arroz Premium 1kg', category: 'Cereales', price: 2.80, lastUpdated: '2025-01-14', status: 'actualizado' },
-    { id: 'p3', name: 'Aceite Vegetal 1L', category: 'Abarrotes', price: 4.25, lastUpdated: '2025-01-13', status: 'actualizado' },
-    { id: 'p4', name: 'Harina PAN 1kg', category: 'Abarrotes', price: 2.15, lastUpdated: '2025-01-12', status: 'desactualizado' },
-    { id: 'p5', name: 'Azúcar 1kg', category: 'Abarrotes', price: 1.95, lastUpdated: '2025-01-14', status: 'actualizado' },
-    { id: 'p6', name: 'Pollo Entero kg', category: 'Carnes', price: 5.80, lastUpdated: '2025-01-14', status: 'nuevo' },
-    { id: 'p7', name: 'Carne Molida kg', category: 'Carnes', price: 8.50, lastUpdated: '2025-01-10', status: 'desactualizado' },
-    { id: 'p8', name: 'Queso Blanco kg', category: 'Lácteos', price: 7.25, lastUpdated: '2025-01-14', status: 'actualizado' },
+    { id: 'p1', name: 'Leche Completa 1L', category: 'Lácteos', price: 3.50, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'LAC001' },
+    { id: 'p2', name: 'Arroz Premium 1kg', category: 'Cereales', price: 2.80, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'CER001' },
+    { id: 'p3', name: 'Aceite Vegetal 1L', category: 'Abarrotes', price: 4.25, lastUpdated: '2025-01-13', status: 'actualizado', sku: 'ABA001' },
+    { id: 'p4', name: 'Harina PAN 1kg', category: 'Abarrotes', price: 2.15, lastUpdated: '2025-01-12', status: 'desactualizado', sku: 'ABA002' },
+    { id: 'p5', name: 'Azúcar 1kg', category: 'Abarrotes', price: 1.95, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'ABA003' },
+    { id: 'p6', name: 'Pollo Entero kg', category: 'Carnes', price: 5.80, lastUpdated: '2025-01-14', status: 'nuevo', sku: 'CAR001' },
+    { id: 'p7', name: 'Carne Molida kg', category: 'Carnes', price: 8.50, lastUpdated: '2025-01-10', status: 'desactualizado', sku: 'CAR002' },
+    { id: 'p8', name: 'Queso Blanco kg', category: 'Lácteos', price: 7.25, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'LAC002' },
+    { id: 'p9', name: 'Yogurt Natural 500g', category: 'Lácteos', price: 2.40, lastUpdated: '2025-01-13', status: 'actualizado', sku: 'LAC003' },
+    { id: 'p10', name: 'Pan de Sandwich', category: 'Panadería', price: 1.80, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'PAN001' },
+    { id: 'p11', name: 'Pasta Corta 500g', category: 'Abarrotes', price: 1.65, lastUpdated: '2025-01-11', status: 'desactualizado', sku: 'ABA004' },
+    { id: 'p12', name: 'Atún en Lata 170g', category: 'Enlatados', price: 2.90, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'ENL001' },
+    { id: 'p13', name: 'Refresco Cola 2L', category: 'Bebidas', price: 2.50, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'BEB001' },
+    { id: 'p14', name: 'Agua Mineral 1.5L', category: 'Bebidas', price: 1.20, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'BEB002' },
+    { id: 'p15', name: 'Detergente Líquido 1L', category: 'Limpieza', price: 4.80, lastUpdated: '2025-01-13', status: 'actualizado', sku: 'LIM001' },
+    { id: 'p16', name: 'Jabón de Baño 3pack', category: 'Higiene Personal', price: 3.25, lastUpdated: '2025-01-12', status: 'desactualizado', sku: 'HIG001' },
+    { id: 'p17', name: 'Papel Higiénico 12 rollos', category: 'Higiene Personal', price: 5.90, lastUpdated: '2025-01-14', status: 'nuevo', sku: 'HIG002' },
+    { id: 'p18', name: 'Cereal de Maíz 500g', category: 'Cereales', price: 4.15, lastUpdated: '2025-01-14', status: 'actualizado', sku: 'CER002' },
+  ],
+};
+
+// Historial de precios por producto (últimas 8 semanas)
+export interface PriceHistoryEntry {
+  date: string;
+  price: number;
+  avgCompetition: number;
+}
+
+export const productPriceHistory: Record<string, PriceHistoryEntry[]> = {
+  'p1': [ // Leche Completa 1L
+    { date: '2024-11-25', price: 3.20, avgCompetition: 3.35 },
+    { date: '2024-12-02', price: 3.25, avgCompetition: 3.40 },
+    { date: '2024-12-09', price: 3.30, avgCompetition: 3.45 },
+    { date: '2024-12-16', price: 3.35, avgCompetition: 3.50 },
+    { date: '2024-12-23', price: 3.40, avgCompetition: 3.55 },
+    { date: '2024-12-30', price: 3.45, avgCompetition: 3.60 },
+    { date: '2025-01-06', price: 3.48, avgCompetition: 3.62 },
+    { date: '2025-01-13', price: 3.50, avgCompetition: 3.65 },
+  ],
+  'p2': [ // Arroz Premium 1kg
+    { date: '2024-11-25', price: 2.50, avgCompetition: 2.45 },
+    { date: '2024-12-02', price: 2.55, avgCompetition: 2.50 },
+    { date: '2024-12-09', price: 2.60, avgCompetition: 2.55 },
+    { date: '2024-12-16', price: 2.65, avgCompetition: 2.60 },
+    { date: '2024-12-23', price: 2.70, avgCompetition: 2.65 },
+    { date: '2024-12-30', price: 2.75, avgCompetition: 2.70 },
+    { date: '2025-01-06', price: 2.78, avgCompetition: 2.72 },
+    { date: '2025-01-13', price: 2.80, avgCompetition: 2.75 },
+  ],
+  'p3': [ // Aceite Vegetal 1L
+    { date: '2024-11-25', price: 3.80, avgCompetition: 4.00 },
+    { date: '2024-12-02', price: 3.90, avgCompetition: 4.10 },
+    { date: '2024-12-09', price: 4.00, avgCompetition: 4.20 },
+    { date: '2024-12-16', price: 4.05, avgCompetition: 4.30 },
+    { date: '2024-12-23', price: 4.10, avgCompetition: 4.35 },
+    { date: '2024-12-30', price: 4.15, avgCompetition: 4.40 },
+    { date: '2025-01-06', price: 4.20, avgCompetition: 4.45 },
+    { date: '2025-01-13', price: 4.25, avgCompetition: 4.50 },
+  ],
+  'p6': [ // Pollo Entero kg
+    { date: '2024-11-25', price: 5.20, avgCompetition: 5.40 },
+    { date: '2024-12-02', price: 5.30, avgCompetition: 5.50 },
+    { date: '2024-12-09', price: 5.40, avgCompetition: 5.55 },
+    { date: '2024-12-16', price: 5.50, avgCompetition: 5.60 },
+    { date: '2024-12-23', price: 5.60, avgCompetition: 5.70 },
+    { date: '2024-12-30', price: 5.65, avgCompetition: 5.75 },
+    { date: '2025-01-06', price: 5.75, avgCompetition: 5.85 },
+    { date: '2025-01-13', price: 5.80, avgCompetition: 5.90 },
+  ],
+  'p8': [ // Queso Blanco kg
+    { date: '2024-11-25', price: 6.50, avgCompetition: 6.80 },
+    { date: '2024-12-02', price: 6.60, avgCompetition: 6.90 },
+    { date: '2024-12-09', price: 6.75, avgCompetition: 7.00 },
+    { date: '2024-12-16', price: 6.90, avgCompetition: 7.10 },
+    { date: '2024-12-23', price: 7.00, avgCompetition: 7.20 },
+    { date: '2024-12-30', price: 7.10, avgCompetition: 7.30 },
+    { date: '2025-01-06', price: 7.18, avgCompetition: 7.40 },
+    { date: '2025-01-13', price: 7.25, avgCompetition: 7.50 },
   ],
 };
 
