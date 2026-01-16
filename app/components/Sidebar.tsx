@@ -9,7 +9,9 @@ import {
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
-  Menu
+  Menu,
+  Store,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -30,6 +32,16 @@ const navItems: NavItem[] = [
     name: 'Usuarios',
     href: '/admin/usuarios',
     icon: <Users size={20} />,
+  },
+  {
+    name: 'Supermercados',
+    href: '/admin/supermercados',
+    icon: <Store size={20} />,
+  },
+  {
+    name: 'Auditoría',
+    href: '/admin/auditoria',
+    icon: <ClipboardList size={20} />,
   },
 ];
 

@@ -377,3 +377,180 @@ export const priceTrend: Record<string, { day: string; avgPrice: number }[]> = {
     { day: 'Dom', avgPrice: 8.75 },
   ],
 };
+
+// ============================================
+// AUDITORÍA / LOGS DE ACTIVIDAD
+// ============================================
+
+export type AuditAction =
+  | 'user_login'
+  | 'user_logout'
+  | 'user_created'
+  | 'user_updated'
+  | 'user_deleted'
+  | 'user_status_changed'
+  | 'supermarket_created'
+  | 'supermarket_updated'
+  | 'supermarket_deleted'
+  | 'data_uploaded'
+  | 'data_deleted'
+  | 'password_changed'
+  | 'role_changed';
+
+export interface AuditLog {
+  id: string;
+  action: AuditAction;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  targetType?: 'user' | 'supermarket' | 'product' | 'upload';
+  targetId?: string;
+  targetName?: string;
+  details?: string;
+  ipAddress: string;
+  timestamp: string;
+}
+
+export const auditLogs: AuditLog[] = [
+  {
+    id: 'log1',
+    action: 'user_login',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-14 10:30:00',
+  },
+  {
+    id: 'log2',
+    action: 'data_uploaded',
+    userId: '9',
+    userName: 'Roberto Analista',
+    userRole: 'Analista',
+    targetType: 'upload',
+    targetId: 'u1',
+    targetName: 'productos_enero_14.csv',
+    details: '89 productos cargados',
+    ipAddress: '192.168.1.105',
+    timestamp: '2025-01-14 09:30:00',
+  },
+  {
+    id: 'log3',
+    action: 'user_created',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    targetType: 'user',
+    targetId: '8',
+    targetName: 'José Hernández',
+    details: 'Nuevo usuario registrado con rol Usuario',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-13 16:45:00',
+  },
+  {
+    id: 'log4',
+    action: 'user_status_changed',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    targetType: 'user',
+    targetId: '5',
+    targetName: 'Ana Martínez',
+    details: 'Estado cambiado de activo a inactivo',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-13 14:20:00',
+  },
+  {
+    id: 'log5',
+    action: 'user_login',
+    userId: '9',
+    userName: 'Roberto Analista',
+    userRole: 'Analista',
+    ipAddress: '192.168.1.105',
+    timestamp: '2025-01-13 09:15:00',
+  },
+  {
+    id: 'log6',
+    action: 'supermarket_updated',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    targetType: 'supermarket',
+    targetId: '1',
+    targetName: 'Excelsior Gama',
+    details: 'Color actualizado',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-12 11:30:00',
+  },
+  {
+    id: 'log7',
+    action: 'data_uploaded',
+    userId: '9',
+    userName: 'Roberto Analista',
+    userRole: 'Analista',
+    targetType: 'upload',
+    targetId: 'u2',
+    targetName: 'actualizacion_precios.csv',
+    details: '234 productos actualizados',
+    ipAddress: '192.168.1.105',
+    timestamp: '2025-01-12 10:00:00',
+  },
+  {
+    id: 'log8',
+    action: 'user_logout',
+    userId: '2',
+    userName: 'Usuario Demo',
+    userRole: 'Usuario',
+    ipAddress: '192.168.1.110',
+    timestamp: '2025-01-11 18:30:00',
+  },
+  {
+    id: 'log9',
+    action: 'role_changed',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    targetType: 'user',
+    targetId: '9',
+    targetName: 'Roberto Analista',
+    details: 'Rol cambiado de Usuario a Analista',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-10 15:45:00',
+  },
+  {
+    id: 'log10',
+    action: 'supermarket_created',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    targetType: 'supermarket',
+    targetId: '6',
+    targetName: 'Locatel',
+    details: 'Nuevo supermercado agregado al sistema',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-10 10:00:00',
+  },
+  {
+    id: 'log11',
+    action: 'password_changed',
+    userId: '3',
+    userName: 'María García',
+    userRole: 'Usuario',
+    details: 'Contraseña actualizada por el usuario',
+    ipAddress: '192.168.1.115',
+    timestamp: '2025-01-09 14:20:00',
+  },
+  {
+    id: 'log12',
+    action: 'user_deleted',
+    userId: '1',
+    userName: 'Admin Principal',
+    userRole: 'Administrador',
+    targetType: 'user',
+    targetId: '99',
+    targetName: 'Usuario Prueba',
+    details: 'Usuario eliminado del sistema',
+    ipAddress: '192.168.1.100',
+    timestamp: '2025-01-08 16:00:00',
+  },
+];
