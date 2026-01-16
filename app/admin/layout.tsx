@@ -12,7 +12,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isMobile } = useSidebar();
   const router = useRouter();
 
   useEffect(() => {
@@ -47,7 +47,13 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       {/* Contenido principal con margen dinámico para el sidebar */}
-      <main className={`transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+      <main className={`transition-all duration-300 ${
+        isMobile
+          ? 'ml-0 pt-16'
+          : isCollapsed
+            ? 'ml-20'
+            : 'ml-64'
+      }`}>
         <div className="p-6">
           {children}
         </div>

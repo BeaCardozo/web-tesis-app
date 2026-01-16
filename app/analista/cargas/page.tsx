@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { mockSupermarkets, uploadHistory, UploadHistory } from '../../data/mockData';
+import { Pagination } from '../../components/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 
 // ============================================
 // COMPONENTE DE ZONA DE CARGA
@@ -195,6 +197,17 @@ export default function CargasPage() {
     uploadHistory.filter(h => h.supermarketId === user?.supermarketId)
   );
 
+  // Paginacion
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalPages,
+    paginatedData: paginatedHistory,
+    totalItems
+  } = usePagination({ data: history, initialItemsPerPage: 10 });
+
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     setUploadResult(null);
@@ -346,8 +359,8 @@ export default function CargasPage() {
               </tr>
             </thead>
             <tbody>
-              {history.length > 0 ? (
-                history.map((upload) => (
+              {paginatedHistory.length > 0 ? (
+                paginatedHistory.map((upload) => (
                   <tr key={upload.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -386,6 +399,19 @@ export default function CargasPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Paginacion */}
+        {history.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemName="cargas"
+          />
+        )}
       </div>
     </div>
   );

@@ -13,6 +13,8 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Pagination } from '../../components/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 import {
   mockSupermarkets,
   supermarketStats,
@@ -114,6 +116,17 @@ export default function AnalistaDashboardPage() {
   const priceComp = priceComparison[user?.supermarketId || '1'] || [];
   const trend = priceTrend[user?.supermarketId || '1'] || [];
   const products = supermarketProducts[user?.supermarketId || '1'] || [];
+
+  // Paginacion para comparacion de precios
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalPages,
+    paginatedData: paginatedPriceComp,
+    totalItems
+  } = usePagination({ data: priceComp, initialItemsPerPage: 5 });
 
   // Preparar datos para gráfico de tendencia
   const trendChartData = trend.map(t => ({
@@ -267,7 +280,7 @@ export default function AnalistaDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {priceComp.map((item, index) => (
+              {paginatedPriceComp.map((item, index) => (
                 <tr key={index} className="border-b border-gray-50 hover:bg-gray-50/50">
                   <td className="py-3 px-4 text-gray-800">{item.product}</td>
                   <td className="py-3 px-4 text-right font-medium" style={{ color: supermarket?.color }}>
@@ -286,6 +299,20 @@ export default function AnalistaDashboardPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Paginacion */}
+        {priceComp.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemsPerPageOptions={[5, 10, 20]}
+            itemName="productos"
+          />
+        )}
       </div>
 
       {/* Rendimiento por categoría */}

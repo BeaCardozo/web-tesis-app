@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -13,6 +13,8 @@ import {
   Check
 } from 'lucide-react';
 import { mockUsers, User, UserRole } from '../../data/mockData';
+import { Pagination } from '../../components/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 
 // ============================================
 // MODAL DE USUARIO
@@ -224,6 +226,23 @@ export default function UsersPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  // Paginacion
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalPages,
+    paginatedData: paginatedUsers,
+    totalItems,
+    resetToFirstPage
+  } = usePagination({ data: filteredUsers, initialItemsPerPage: 10 });
+
+  // Resetear a pagina 1 cuando cambian los filtros
+  useEffect(() => {
+    resetToFirstPage();
+  }, [searchTerm, filterRole, filterStatus, resetToFirstPage]);
+
   // ============================================
   // HANDLERS - TODO: Reemplazar con llamadas a API
   // ============================================
@@ -293,13 +312,13 @@ export default function UsersPage() {
         <div className="flex flex-col md:flex-row gap-4">
           {/* Búsqueda */}
           <div className="flex-1 relative">
-            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
               type="text"
               placeholder="Buscar por nombre o email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-100 border-0 focus:ring-2 focus:ring-accent-green outline-none"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-accent-green focus:border-transparent outline-none"
             />
           </div>
 
@@ -307,7 +326,7 @@ export default function UsersPage() {
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value as 'all' | UserRole)}
-            className="px-4 py-2.5 rounded-xl bg-gray-100 border-0 focus:ring-2 focus:ring-accent-green outline-none min-w-[160px]"
+            className="px-4 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-800 focus:ring-2 focus:ring-accent-green focus:border-transparent outline-none min-w-[160px] cursor-pointer"
           >
             <option value="all">Todos los roles</option>
             <option value="Administrador">Administrador</option>
@@ -318,7 +337,7 @@ export default function UsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as 'all' | 'activo' | 'inactivo')}
-            className="px-4 py-2.5 rounded-xl bg-gray-100 border-0 focus:ring-2 focus:ring-accent-green outline-none min-w-[160px]"
+            className="px-4 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-800 focus:ring-2 focus:ring-accent-green focus:border-transparent outline-none min-w-[160px] cursor-pointer"
           >
             <option value="all">Todos los estados</option>
             <option value="activo">Activo</option>
@@ -342,7 +361,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -440,12 +459,18 @@ export default function UsersPage() {
           </div>
         )}
 
-        {/* Footer con info */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-          <p className="text-sm text-gray-500">
-            Mostrando {filteredUsers.length} de {users.length} usuarios
-          </p>
-        </div>
+        {/* Paginacion */}
+        {filteredUsers.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemName="usuarios"
+          />
+        )}
       </div>
 
       {/* Modales */}
