@@ -50,6 +50,7 @@ export default function CarritoPage() {
   const [showNewCartModal, setShowNewCartModal] = useState(false);
   const [newCartName, setNewCartName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [compareVersion, setCompareVersion] = useState(0);
 
   const cartItems = activeCart?.items || [];
 
@@ -117,14 +118,14 @@ export default function CarritoPage() {
     fetchCart(activeCartId);
   }, [activeCartId, fetchCart]);
 
-  // Fetch comparison when cart loads or mode changes
+  // Fetch comparison when cart loads, mode changes, or quantities change
   useEffect(() => {
     if (!activeCartId || !activeCart || activeCart.items.length === 0) {
       setComparison(null);
       return;
     }
     fetchComparison(activeCartId, comparisonMode);
-  }, [activeCartId, activeCart?.items.length, comparisonMode, fetchComparison]);
+  }, [activeCartId, activeCart?.items.length, comparisonMode, compareVersion, fetchComparison]);
 
   // ---- Mutations ----
 
@@ -169,9 +170,10 @@ export default function CarritoPage() {
       setActiveCart(prev => prev ? { ...prev, items: prev.items.filter(i => i.id !== itemId) } : prev);
       try {
         await cartsApi.removeItem(activeCartId, itemId);
-        await fetchCarts(); // Update item count
+        await fetchCarts();
+        setCompareVersion(v => v + 1);
       } catch {
-        fetchCart(activeCartId); // Revert on error
+        fetchCart(activeCartId);
       }
       return;
     }
@@ -184,8 +186,9 @@ export default function CarritoPage() {
 
     try {
       await cartsApi.updateItem(activeCartId, itemId, { quantity: newQty });
+      setCompareVersion(v => v + 1);
     } catch {
-      fetchCart(activeCartId); // Revert on error
+      fetchCart(activeCartId);
     }
   };
 
@@ -195,6 +198,7 @@ export default function CarritoPage() {
     try {
       await cartsApi.removeItem(activeCartId, itemId);
       await fetchCarts();
+      setCompareVersion(v => v + 1);
     } catch {
       fetchCart(activeCartId);
     }
@@ -353,55 +357,59 @@ export default function CarritoPage() {
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4"
+                  className="bg-white rounded-xl border border-gray-100 p-4"
                 >
-                  <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden">
-                    {item.product.imageUrl ? (
-                      <img
-                        src={item.product.imageUrl}
-                        alt={item.product.name}
-                        className="h-full w-full object-contain p-1"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <Package size={22} className="text-button-green/40" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden">
+                      {item.product.imageUrl ? (
+                        <img
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
+                          className="h-full w-full object-contain p-1"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Package size={20} className="text-button-green/40" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <button
+                        onClick={() => router.push(`/usuario/producto/${item.product.id}`)}
+                        className="font-medium text-gray-800 text-sm hover:text-button-green transition-colors text-left line-clamp-2 leading-tight"
+                      >
+                        {item.product.name}
+                      </button>
+                      <p className="text-xs text-gray-400 mt-0.5">{unit}</p>
+                    </div>
                     <button
-                      onClick={() => router.push(`/usuario/producto/${item.product.id}`)}
-                      className="font-medium text-gray-800 text-sm hover:text-button-green transition-colors truncate block text-left"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                     >
-                      {item.product.name}
+                      <Trash2 size={14} />
                     </button>
-                    <p className="text-xs text-gray-400">{unit}</p>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
                     {item.product.category && (
-                      <p className="text-xs text-button-green mt-0.5">{item.product.category.name}</p>
+                      <span className="text-xs text-button-green">{item.product.category.name}</span>
                     )}
+                    <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, -1)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="w-8 text-center font-medium text-gray-800">{item.quantity}</span>
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, 1)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-button-green text-white hover:bg-accent-green-dark transition-colors"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleUpdateQuantity(item.id, -1)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <span className="w-8 text-center font-medium text-gray-800">{item.quantity}</span>
-                    <button
-                      onClick={() => handleUpdateQuantity(item.id, 1)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-button-green text-white hover:bg-accent-green-dark transition-colors"
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               );
             })}
@@ -532,11 +540,14 @@ export default function CarritoPage() {
 
             {/* Mixed mode results */}
             {!isComparing && comparisonMode === 'mixed' && mixedData && (
-              <div className="bg-white rounded-xl border border-green-300 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="space-y-3">
+                {/* Total card */}
+                <div className="bg-white rounded-xl border border-green-300 shadow-sm p-4 flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-gray-800">Compra optimizada</h3>
-                    <p className="text-xs text-gray-400">Mejor precio por producto</p>
+                    <p className="text-xs text-gray-400">
+                      Comprar en {mixedData.bySupermarket.length} supermercado{mixedData.bySupermarket.length !== 1 ? 's' : ''}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">
@@ -545,48 +556,52 @@ export default function CarritoPage() {
                     <span className="text-xs text-green-600 font-medium">Total optimizado</span>
                   </div>
                 </div>
-                <div className="divide-y divide-gray-50">
-                  {mixedData.lines.map((line) => (
-                    <div key={line.productId} className="flex items-center justify-between p-4">
+
+                {/* Grouped by supermarket */}
+                {mixedData.bySupermarket.map((sm) => (
+                  <div key={sm.supermarketName} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-gray-50">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary-lightest rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Package size={16} className="text-button-green/40" />
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-button-green">
+                          <Store size={18} />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800 text-sm">{line.productName}</p>
-                          {line.bestOffer ? (
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <Store size={12} className="text-gray-400" />
-                              <span className="text-xs text-gray-400">
-                                {line.bestOffer.supermarketName}
-                                {line.bestOffer.storeName ? ` - ${line.bestOffer.storeName}` : ''}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">Sin precio disponible</span>
-                          )}
+                          <p className="font-medium text-gray-800">{sm.supermarketName}</p>
+                          <p className="text-xs text-gray-400">
+                            {sm.purchases.length} producto{sm.purchases.length !== 1 ? 's' : ''}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        {line.bestOffer ? (
-                          <>
-                            <p className="font-semibold text-gray-800">
-                              {formatCurrency(line.bestOffer.lineTotalUsd)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {formatCurrency(line.bestOffer.unitPriceUsd)} x {line.quantity}
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-sm text-gray-400">N/D</p>
-                        )}
-                      </div>
+                      <p className="text-lg font-bold text-gray-800">
+                        {formatCurrency(sm.subtotalUsd)}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                    <div className="divide-y divide-gray-50">
+                      {sm.purchases.map((p) => (
+                        <div key={p.productId} className="flex items-center justify-between px-5 py-3 ml-4">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-8 h-8 bg-primary-lightest rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Package size={14} className="text-button-green/40" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm text-gray-700 line-clamp-1">{p.productName}</p>
+                              <p className="text-xs text-gray-400">
+                                {formatCurrency(p.unitPriceUsd)} x {p.quantity}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="font-medium text-gray-800 text-sm flex-shrink-0 ml-3">
+                            {formatCurrency(p.lineTotalUsd)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
                 {/* Savings vs single */}
-                {singleData && singleData.cheapest && (
-                  <div className="p-4 bg-green-50 border-t border-green-100">
+                {singleData && singleData.cheapest && mixedData.grandTotalUsd < singleData.cheapest.totalUsd && (
+                  <div className="bg-green-50 rounded-xl border border-green-200 p-4">
                     <p className="text-sm text-green-700">
                       Ahorro vs. mejor supermercado unico:{' '}
                       <strong>
