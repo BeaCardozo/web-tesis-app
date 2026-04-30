@@ -94,7 +94,7 @@ export default function InicioPage() {
   const userInitial = firstName.charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl  space-y-10">
       {/* Header personalizado */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -187,43 +187,6 @@ export default function InicioPage() {
             </div>
             <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 -rotate-6 -mt-2 ml-8">
               <TrendingDown size={24} className="text-white/80" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-green-50 to-green-100 rounded-xl flex items-center justify-center">
-              <TrendingDown size={20} className="text-button-green" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-medium">Compara y ahorra</p>
-              <p className="text-lg font-bold text-gray-800">Precios al dia</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl flex items-center justify-center">
-              <Package size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-medium">Productos disponibles</p>
-              <p className="text-lg font-bold text-gray-800">{totalProducts}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl flex items-center justify-center">
-              <Star size={20} className="text-purple-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-medium">Supermercados</p>
-              <p className="text-lg font-bold text-gray-800">{supermarkets.length}</p>
             </div>
           </div>
         </div>

@@ -12,6 +12,8 @@ import {
   Menu,
   User,
   X,
+  Tag,
+  LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -25,6 +27,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: 'Inicio', href: '/usuario/inicio', icon: <Home size={22} /> },
   { name: 'Productos', href: '/usuario/productos', icon: <Search size={22} /> },
+  { name: 'Categorias', href: '/usuario/categorias', icon: <LayoutGrid size={22} /> },
+  { name: 'Ofertas', href: '/usuario/ofertas', icon: <Tag size={22} /> },
   { name: 'Carrito', href: '/usuario/carrito', icon: <ShoppingCart size={22} /> },
   { name: 'Perfil', href: '/usuario/perfil', icon: <User size={22} /> },
 ];
@@ -69,8 +73,8 @@ export function SidebarUsuario() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen bg-white border-r border-gray-200/60 z-50
-          transition-all duration-300 ease-in-out flex flex-col
+          fixed left-0 top-0 h-screen bg-gradient-to-b from-[#1e3a2f] to-[#264a3a] z-50
+          transition-all duration-300 ease-in-out flex flex-col shadow-xl
           ${isMobile
             ? isCollapsed ? '-translate-x-full w-[272px]' : 'translate-x-0 w-[272px]'
             : isCollapsed ? 'w-20' : 'w-[272px]'
@@ -80,28 +84,28 @@ export function SidebarUsuario() {
         {/* Logo */}
         <div className={`shrink-0 ${expanded ? 'px-6 py-6' : 'px-3 py-6 flex justify-center'}`}>
           <div className={`flex items-center ${expanded ? 'gap-3' : ''}`}>
-            <div className="w-10 h-10 bg-gradient-to-br from-button-green to-accent-green-dark rounded-xl flex items-center justify-center shrink-0">
-              <ShoppingCart className="text-white" size={20} />
+            <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
+              <ShoppingCart className="text-primary" size={20} />
             </div>
             {expanded && (
               <div>
                 <p className="font-bold text-[17px] tracking-tight leading-tight">
-                  <span className="text-gray-900">Caracas</span>
-                  <span className="text-button-green">Ahorra</span>
+                  <span className="text-white">Caracas</span>
+                  <span className="text-primary">Ahorra</span>
                 </p>
-                <p className="text-[11px] text-gray-400 mt-0.5">Compara y ahorra</p>
+                <p className="text-[11px] text-white/40 mt-0.5">Compara y ahorra</p>
               </div>
             )}
           </div>
           {isMobile && expanded && (
-            <button onClick={closeSidebar} className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <button onClick={closeSidebar} className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-white/10 text-white/50">
               <X size={18} />
             </button>
           )}
         </div>
 
         {/* Separador */}
-        <div className={`h-px bg-gray-100 shrink-0 ${expanded ? 'mx-6' : 'mx-4'}`} />
+        <div className={`h-px bg-white/10 shrink-0 ${expanded ? 'mx-6' : 'mx-4'}`} />
 
         {/* Navegacion */}
         <nav className="flex-1 px-3 pt-8 overflow-y-auto">
@@ -117,14 +121,14 @@ export function SidebarUsuario() {
                       flex items-center gap-4 py-3.5 rounded-2xl
                       transition-all duration-200
                       ${isActive
-                        ? 'bg-gray-50 text-gray-900 font-semibold'
-                        : 'text-gray-500 hover:bg-gray-50/80 hover:text-gray-700'
+                        ? 'bg-white/[0.12] text-white font-semibold'
+                        : 'text-white/60 hover:bg-white/[0.07] hover:text-white'
                       }
                       ${expanded ? 'px-4' : 'justify-center px-3'}
                     `}
                     title={!expanded ? item.name : undefined}
                   >
-                    <span className={`shrink-0 ${isActive ? 'text-button-green' : 'text-gray-400'}`}>
+                    <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-white/40'}`}>
                       {item.icon}
                     </span>
                     {expanded && <span className="text-[15px]">{item.name}</span>}
@@ -137,12 +141,12 @@ export function SidebarUsuario() {
 
         {/* Cerrar sesion */}
         <div className="px-3 pb-6 pt-2 shrink-0">
-          <div className={`h-px bg-gray-100 mb-4 ${expanded ? 'mx-3' : 'mx-2'}`} />
+          <div className={`h-px bg-white/10 mb-4 ${expanded ? 'mx-3' : 'mx-2'}`} />
           <button
             onClick={handleLogout}
             className={`
               w-full flex items-center gap-4 py-3.5 rounded-2xl
-              text-gray-500 hover:bg-gray-50/80 hover:text-gray-700 transition-all duration-200
+              text-white/60 hover:bg-white/[0.07] hover:text-white transition-all duration-200
               ${expanded ? 'px-4' : 'justify-center px-3'}
             `}
             title={!expanded ? 'Cerrar sesion' : undefined}
@@ -156,7 +160,7 @@ export function SidebarUsuario() {
         {!isMobile && (
           <button
             onClick={toggle}
-            className="absolute -right-3 top-8 w-6 h-6 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-all text-gray-400 hover:text-gray-600"
+            className="absolute -right-3 top-8 w-6 h-6 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-all text-accent-green-dark hover:text-accent-green-dark"
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
