@@ -2,36 +2,59 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { authApi } from '../lib/api';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      setError('Las contraseñas no coinciden');
       return;
     }
 
     if (!formData.acceptTerms) {
-      alert('Debes aceptar los términos y condiciones');
+      setError('Debes aceptar los términos y condiciones');
       return;
     }
 
-    console.log('Register attempt:', formData);
-    // Aquí se conectará con el backend cuando esté listo
+    setIsLoading(true);
+
+    try {
+      await authApi.register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // Registro exitoso, redirigir al login
+      router.push('/login?registered=true');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al registrar usuario';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -49,13 +72,30 @@ export default function RegisterPage() {
         {/* Formulario */}
         <div className="bg-white rounded-3xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Nombre completo */}
+            {/* Mensaje de error */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Nombre */}
             <Input
               type="text"
-              placeholder="Nombre completo"
+              placeholder="Nombre"
               icon={<User size={20} />}
-              value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              required
+            />
+
+            {/* Apellido */}
+            <Input
+              type="text"
+              placeholder="Apellido"
+              icon={<User size={20} />}
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               required
             />
 
@@ -115,7 +155,9 @@ export default function RegisterPage() {
             </div>
 
             {/* Botón de registro */}
-            <Button type="submit">Registrarse</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Registrando...' : 'Registrarse'}
+            </Button>
           </form>
 
           {/* Enlace a login */}

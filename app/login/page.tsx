@@ -1,16 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoading } = useAuth();
+
+  const justRegistered = searchParams.get('registered') === 'true';
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +71,13 @@ export default function LoginPage() {
         {/* Formulario */}
         <div className="bg-white rounded-3xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Mensaje de registro exitoso */}
+            {justRegistered && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                Cuenta creada exitosamente. Inicia sesión con tus credenciales.
+              </div>
+            )}
+
             {/* Mensaje de error */}
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">

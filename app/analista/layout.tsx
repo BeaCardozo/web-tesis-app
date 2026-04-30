@@ -56,7 +56,7 @@ export default function AnalistaLayout({
           ? 'ml-0 pt-16'
           : isCollapsed
             ? 'ml-20'
-            : 'ml-64'
+            : 'ml-[272px]'
       }`}>
         <div className="p-6">
           {children}

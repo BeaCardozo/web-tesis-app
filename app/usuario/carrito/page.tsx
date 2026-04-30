@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ShoppingCart,
@@ -12,169 +12,206 @@ import {
   Store,
   DollarSign,
   ChevronDown,
-  ToggleLeft,
-  ToggleRight,
   ArrowRight,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import {
-  userCarts,
-  userProducts,
-  formatPrice,
-  UserCart,
-  CartItem,
-  SupermarketPrice,
-} from '../../data/userMockData';
-import { mockSupermarkets } from '../../data/mockData';
-
-interface ComparisonResult {
-  supermarketId: string;
-  supermarketName: string;
-  supermarketColor: string;
-  total: number;
-  items: { productName: string; price: number; quantity: number }[];
-  allAvailable: boolean;
-}
-
-interface MixedResult {
-  items: {
-    productName: string;
-    quantity: number;
-    bestPrice: number;
-    supermarketName: string;
-    supermarketColor: string;
-  }[];
-  total: number;
-}
+  cartsApi,
+  ApiCart,
+  ApiCartDetail,
+  ApiCompareResult,
+  ApiCompareSingleResult,
+  ApiCompareMixedResult,
+} from '../../lib/api';
+import { EXCHANGE_RATE } from '../../data/userMockData';
 
 export default function CarritoPage() {
   const router = useRouter();
-  const [carts, setCarts] = useState<UserCart[]>(userCarts);
-  const [activeCartId, setActiveCartId] = useState(carts[0]?.id || '');
-  const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
+
+  // Cart list & active cart
+  const [carts, setCarts] = useState<ApiCart[]>([]);
+  const [activeCartId, setActiveCartId] = useState('');
+  const [activeCart, setActiveCart] = useState<ApiCartDetail | null>(null);
+
+  // Comparison
   const [comparisonMode, setComparisonMode] = useState<'single' | 'mixed'>('single');
+  const [comparison, setComparison] = useState<ApiCompareResult | null>(null);
+
+  // Loading & error
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCart, setIsLoadingCart] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const [error, setError] = useState('');
+
+  // UI
+  const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
   const [showCartSelector, setShowCartSelector] = useState(false);
   const [showNewCartModal, setShowNewCartModal] = useState(false);
   const [newCartName, setNewCartName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  const activeCart = carts.find(c => c.id === activeCartId);
   const cartItems = activeCart?.items || [];
 
-  // Comparacion modo unico: total por supermercado
-  const singleComparison = useMemo((): ComparisonResult[] => {
-    if (cartItems.length === 0) return [];
-
-    const results: ComparisonResult[] = [];
-
-    for (const sm of mockSupermarkets) {
-      let total = 0;
-      let allAvailable = true;
-      const items: ComparisonResult['items'] = [];
-
-      for (const item of cartItems) {
-        const priceEntry = item.prices.find(p => p.supermarketId === sm.id);
-        if (priceEntry) {
-          total += priceEntry.price * item.quantity;
-          items.push({
-            productName: item.productName,
-            price: priceEntry.price,
-            quantity: item.quantity,
-          });
-        } else {
-          allAvailable = false;
-        }
-      }
-
-      if (items.length > 0) {
-        results.push({
-          supermarketId: sm.id,
-          supermarketName: sm.name,
-          supermarketColor: sm.color,
-          total,
-          items,
-          allAvailable,
-        });
-      }
-    }
-
-    return results.sort((a, b) => {
-      if (a.allAvailable && !b.allAvailable) return -1;
-      if (!a.allAvailable && b.allAvailable) return 1;
-      return a.total - b.total;
-    });
-  }, [cartItems]);
-
-  // Comparacion modo mixto: mejor precio por producto
-  const mixedComparison = useMemo((): MixedResult => {
-    const items: MixedResult['items'] = [];
-    let total = 0;
-
-    for (const item of cartItems) {
-      if (item.prices.length === 0) continue;
-      const best = item.prices.reduce((min, p) => p.price < min.price ? p : min, item.prices[0]);
-      const subtotal = best.price * item.quantity;
-      total += subtotal;
-      items.push({
-        productName: item.productName,
-        quantity: item.quantity,
-        bestPrice: best.price,
-        supermarketName: best.supermarketName,
-        supermarketColor: best.supermarketColor,
-      });
-    }
-
-    return { items, total };
-  }, [cartItems]);
-
-  const updateQuantity = (itemId: string, delta: number) => {
-    setCarts(prev =>
-      prev.map(cart => {
-        if (cart.id !== activeCartId) return cart;
-        return {
-          ...cart,
-          items: cart.items
-            .map(item =>
-              item.id === itemId
-                ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-                : item
-            )
-            .filter(item => item.quantity > 0),
-        };
-      })
-    );
+  const formatCurrency = (usd: number) => {
+    if (currency === 'Bs') return `Bs. ${(usd * EXCHANGE_RATE).toFixed(2)}`;
+    return `$${usd.toFixed(2)}`;
   };
 
-  const removeItem = (itemId: string) => {
-    setCarts(prev =>
-      prev.map(cart => {
-        if (cart.id !== activeCartId) return cart;
-        return { ...cart, items: cart.items.filter(item => item.id !== itemId) };
-      })
-    );
-  };
+  // ---- Data fetching ----
 
-  const createCart = () => {
-    if (!newCartName.trim()) return;
-    const newCart: UserCart = {
-      id: `cart-${Date.now()}`,
-      name: newCartName.trim(),
-      items: [],
-      createdAt: new Date().toISOString().split('T')[0],
+  const fetchCarts = useCallback(async () => {
+    try {
+      const data = await cartsApi.list();
+      setCarts(data);
+      return data;
+    } catch {
+      setError('Error al cargar carritos');
+      return [];
+    }
+  }, []);
+
+  const fetchCart = useCallback(async (cartId: string) => {
+    setIsLoadingCart(true);
+    try {
+      const data = await cartsApi.getOne(cartId);
+      setActiveCart(data);
+      return data;
+    } catch {
+      setActiveCart(null);
+    } finally {
+      setIsLoadingCart(false);
+    }
+  }, []);
+
+  const fetchComparison = useCallback(async (cartId: string, mode: 'single' | 'mixed') => {
+    setIsComparing(true);
+    setComparison(null);
+    try {
+      const data = await cartsApi.compare(cartId, mode);
+      setComparison(data);
+    } catch {
+      // Comparison may fail if no DWH data — that's OK
+      setComparison(null);
+    } finally {
+      setIsComparing(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      const data = await fetchCarts();
+      if (data.length > 0) {
+        setActiveCartId(data[0].id);
+      }
+      setIsLoading(false);
     };
-    setCarts(prev => [...prev, newCart]);
-    setActiveCartId(newCart.id);
-    setNewCartName('');
-    setShowNewCartModal(false);
+    init();
+  }, [fetchCarts]);
+
+  // Fetch cart detail when active cart changes
+  useEffect(() => {
+    if (!activeCartId) return;
+    fetchCart(activeCartId);
+  }, [activeCartId, fetchCart]);
+
+  // Fetch comparison when cart loads or mode changes
+  useEffect(() => {
+    if (!activeCartId || !activeCart || activeCart.items.length === 0) {
+      setComparison(null);
+      return;
+    }
+    fetchComparison(activeCartId, comparisonMode);
+  }, [activeCartId, activeCart?.items.length, comparisonMode, fetchComparison]);
+
+  // ---- Mutations ----
+
+  const handleCreateCart = async () => {
+    if (!newCartName.trim()) return;
+    try {
+      const newCart = await cartsApi.create(newCartName.trim());
+      setNewCartName('');
+      setShowNewCartModal(false);
+      await fetchCarts();
+      setActiveCartId(newCart.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al crear carrito';
+      setError(msg);
+    }
   };
 
-  const deleteCart = (cartId: string) => {
-    setCarts(prev => prev.filter(c => c.id !== cartId));
-    if (activeCartId === cartId) {
-      const remaining = carts.filter(c => c.id !== cartId);
-      setActiveCartId(remaining[0]?.id || '');
+  const handleDeleteCart = async (cartId: string) => {
+    try {
+      await cartsApi.remove(cartId);
+      setShowDeleteConfirm(null);
+      const remaining = await fetchCarts();
+      if (activeCartId === cartId) {
+        setActiveCartId(remaining[0]?.id || '');
+        if (remaining.length === 0) setActiveCart(null);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar carrito';
+      setError(msg);
     }
-    setShowDeleteConfirm(null);
   };
+
+  const handleUpdateQuantity = async (itemId: string, delta: number) => {
+    if (!activeCart) return;
+    const item = activeCart.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    const newQty = item.quantity + delta;
+
+    if (newQty <= 0) {
+      // Remove item
+      setActiveCart(prev => prev ? { ...prev, items: prev.items.filter(i => i.id !== itemId) } : prev);
+      try {
+        await cartsApi.removeItem(activeCartId, itemId);
+        await fetchCarts(); // Update item count
+      } catch {
+        fetchCart(activeCartId); // Revert on error
+      }
+      return;
+    }
+
+    // Optimistic update
+    setActiveCart(prev => prev ? {
+      ...prev,
+      items: prev.items.map(i => i.id === itemId ? { ...i, quantity: newQty } : i),
+    } : prev);
+
+    try {
+      await cartsApi.updateItem(activeCartId, itemId, { quantity: newQty });
+    } catch {
+      fetchCart(activeCartId); // Revert on error
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    // Optimistic
+    setActiveCart(prev => prev ? { ...prev, items: prev.items.filter(i => i.id !== itemId) } : prev);
+    try {
+      await cartsApi.removeItem(activeCartId, itemId);
+      await fetchCarts();
+    } catch {
+      fetchCart(activeCartId);
+    }
+  };
+
+  // ---- Render helpers ----
+
+  const singleData = comparison?.mode === 'single' ? comparison as ApiCompareSingleResult : null;
+  const mixedData = comparison?.mode === 'mixed' ? comparison as ApiCompareMixedResult : null;
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
+        <Loader2 size={32} className="animate-spin text-button-green" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -185,7 +222,6 @@ export default function CarritoPage() {
           <p className="text-gray-500 mt-1">Compara precios y optimiza tu compra</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Selector de moneda */}
           <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
             <button
               onClick={() => setCurrency('USD')}
@@ -212,7 +248,18 @@ export default function CarritoPage() {
         </div>
       </div>
 
-      {/* Selector de carrito */}
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+          <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
+          <p className="text-red-600 text-sm flex-1">{error}</p>
+          <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Cart selector */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between">
           <div className="relative flex-1">
@@ -225,12 +272,11 @@ export default function CarritoPage() {
                 {activeCart?.name || 'Seleccionar carrito'}
               </span>
               <span className="text-xs text-gray-400">
-                ({cartItems.length} items)
+                ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
               </span>
               <ChevronDown size={16} className="text-gray-400 ml-auto" />
             </button>
 
-            {/* Dropdown de carritos */}
             {showCartSelector && (
               <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-100 z-20 overflow-hidden">
                 {carts.map(cart => (
@@ -248,7 +294,7 @@ export default function CarritoPage() {
                       className="flex-1 text-left"
                     >
                       <p className="font-medium text-gray-800 text-sm">{cart.name}</p>
-                      <p className="text-xs text-gray-400">{cart.items.length} productos</p>
+                      <p className="text-xs text-gray-400">{cart.itemCount} productos</p>
                     </button>
                     {carts.length > 1 && (
                       <button
@@ -287,56 +333,71 @@ export default function CarritoPage() {
         </div>
       </div>
 
-      {cartItems.length > 0 ? (
+      {/* Cart loading */}
+      {isLoadingCart && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 size={32} className="animate-spin text-button-green" />
+        </div>
+      )}
+
+      {/* Cart content */}
+      {!isLoadingCart && cartItems.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Lista de items del carrito */}
+          {/* Items list */}
           <div className="lg:col-span-2 space-y-3">
             <h2 className="font-semibold text-gray-800">
               Productos en el carrito ({cartItems.length})
             </h2>
             {cartItems.map(item => {
-              const lowestPrice = item.prices.length > 0
-                ? item.prices.reduce((min, p) => p.price < min.price ? p : min, item.prices[0])
-                : null;
+              const unit = `${item.product.baseAmount} ${item.product.unitType}`;
               return (
                 <div
                   key={item.id}
                   className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4"
                 >
-                  <div className="w-14 h-14 bg-gradient-to-br from-primary-lighter to-primary-lightest rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Package size={22} className="text-button-green/40" />
+                  <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden">
+                    {item.product.imageUrl ? (
+                      <img
+                        src={item.product.imageUrl}
+                        alt={item.product.name}
+                        className="h-full w-full object-contain p-1"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Package size={22} className="text-button-green/40" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <button
-                      onClick={() => router.push(`/usuario/producto/${item.productId}`)}
+                      onClick={() => router.push(`/usuario/producto/${item.product.id}`)}
                       className="font-medium text-gray-800 text-sm hover:text-button-green transition-colors truncate block text-left"
                     >
-                      {item.productName}
+                      {item.product.name}
                     </button>
-                    <p className="text-xs text-gray-400">{item.unit}</p>
-                    {lowestPrice && (
-                      <p className="text-sm font-semibold text-button-green mt-1">
-                        {formatPrice(lowestPrice.price, currency)}
-                      </p>
+                    <p className="text-xs text-gray-400">{unit}</p>
+                    {item.product.category && (
+                      <p className="text-xs text-button-green mt-0.5">{item.product.category.name}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => updateQuantity(item.id, -1)}
+                      onClick={() => handleUpdateQuantity(item.id, -1)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
                     >
                       <Minus size={14} />
                     </button>
                     <span className="w-8 text-center font-medium text-gray-800">{item.quantity}</span>
                     <button
-                      onClick={() => updateQuantity(item.id, 1)}
+                      onClick={() => handleUpdateQuantity(item.id, 1)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg bg-button-green text-white hover:bg-accent-green-dark transition-colors"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <button
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => handleRemoveItem(item.id)}
                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 size={16} />
@@ -353,9 +414,9 @@ export default function CarritoPage() {
             </button>
           </div>
 
-          {/* Comparacion de precios */}
+          {/* Comparison section */}
           <div className="lg:col-span-3 space-y-4">
-            {/* Toggle de modo */}
+            {/* Mode toggle */}
             <div className="bg-white rounded-xl border border-gray-100 p-4">
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-gray-600">Modo de comparacion:</span>
@@ -389,72 +450,88 @@ export default function CarritoPage() {
               </p>
             </div>
 
-            {/* Resultados */}
-            {comparisonMode === 'single' ? (
-              <div className="space-y-3">
-                {singleComparison.map((result, index) => (
-                  <div
-                    key={result.supermarketId}
-                    className={`bg-white rounded-xl border overflow-hidden ${
-                      index === 0 && result.allAvailable
-                        ? 'border-green-300 shadow-sm'
-                        : 'border-gray-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold text-gray-400 bg-gray-100">
-                          {index + 1}
-                        </div>
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                          style={{ backgroundColor: result.supermarketColor }}
-                        >
-                          <Store size={18} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{result.supermarketName}</p>
-                          <p className="text-xs text-gray-400">
-                            {result.items.length}/{cartItems.length} productos disponibles
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-xl font-bold ${
-                          index === 0 && result.allAvailable ? 'text-green-600' : 'text-gray-800'
-                        }`}>
-                          {formatPrice(result.total, currency)}
-                        </p>
-                        {index === 0 && result.allAvailable && (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                            Mejor opcion
-                          </span>
-                        )}
-                        {!result.allAvailable && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                            Incompleto
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Desglose */}
-                    <div className="border-t border-gray-50 px-4 py-2">
-                      {result.items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between py-1.5 text-sm">
-                          <span className="text-gray-600">
-                            {item.productName} x{item.quantity}
-                          </span>
-                          <span className="text-gray-800 font-medium">
-                            {formatPrice(item.price * item.quantity, currency)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+            {/* Comparison loading */}
+            {isComparing && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={24} className="animate-spin text-button-green" />
+                <span className="ml-2 text-sm text-gray-500">Comparando precios...</span>
               </div>
-            ) : (
-              /* Modo mixto */
+            )}
+
+            {/* Single mode results */}
+            {!isComparing && comparisonMode === 'single' && singleData && (
+              <div className="space-y-3">
+                {singleData.supermarkets
+                  .sort((a, b) => {
+                    if (a.allProductsAvailable && !b.allProductsAvailable) return -1;
+                    if (!a.allProductsAvailable && b.allProductsAvailable) return 1;
+                    return a.totalUsd - b.totalUsd;
+                  })
+                  .map((sm, index) => {
+                    const isCheapest = singleData.cheapest?.name === sm.name;
+                    return (
+                      <div
+                        key={sm.name}
+                        className={`bg-white rounded-xl border overflow-hidden ${
+                          isCheapest && sm.allProductsAvailable
+                            ? 'border-green-300 shadow-sm'
+                            : 'border-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold text-gray-400 bg-gray-100">
+                              {index + 1}
+                            </div>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-button-green">
+                              <Store size={18} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{sm.name}</p>
+                              <p className="text-xs text-gray-400">
+                                {sm.lines.filter(l => l.available).length}/{cartItems.length} productos disponibles
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-xl font-bold ${
+                              isCheapest && sm.allProductsAvailable ? 'text-green-600' : 'text-gray-800'
+                            }`}>
+                              {formatCurrency(sm.totalUsd)}
+                            </p>
+                            {isCheapest && sm.allProductsAvailable && (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                Mejor opcion
+                              </span>
+                            )}
+                            {!sm.allProductsAvailable && (
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                                Incompleto
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Line breakdown */}
+                        <div className="border-t border-gray-50 px-4 py-2">
+                          {sm.lines.map((line) => (
+                            <div key={line.productId} className="flex items-center justify-between py-1.5 text-sm">
+                              <span className={`${line.available ? 'text-gray-600' : 'text-gray-400 line-through'}`}>
+                                {line.productName} x{line.quantity}
+                              </span>
+                              <span className="text-gray-800 font-medium">
+                                {line.lineTotalUsd != null ? formatCurrency(line.lineTotalUsd) : 'N/D'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* Mixed mode results */}
+            {!isComparing && comparisonMode === 'mixed' && mixedData && (
               <div className="bg-white rounded-xl border border-green-300 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                   <div>
@@ -463,56 +540,83 @@ export default function CarritoPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">
-                      {formatPrice(mixedComparison.total, currency)}
+                      {formatCurrency(mixedData.grandTotalUsd)}
                     </p>
                     <span className="text-xs text-green-600 font-medium">Total optimizado</span>
                   </div>
                 </div>
                 <div className="divide-y divide-gray-50">
-                  {mixedComparison.items.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-4">
+                  {mixedData.lines.map((line) => (
+                    <div key={line.productId} className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-lighter to-primary-lightest rounded-xl flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 bg-primary-lightest rounded-xl flex items-center justify-center flex-shrink-0">
                           <Package size={16} className="text-button-green/40" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800 text-sm">{item.productName}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: item.supermarketColor }}
-                            />
-                            <span className="text-xs text-gray-400">{item.supermarketName}</span>
-                          </div>
+                          <p className="font-medium text-gray-800 text-sm">{line.productName}</p>
+                          {line.bestOffer ? (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Store size={12} className="text-gray-400" />
+                              <span className="text-xs text-gray-400">
+                                {line.bestOffer.supermarketName}
+                                {line.bestOffer.storeName ? ` - ${line.bestOffer.storeName}` : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">Sin precio disponible</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-gray-800">
-                          {formatPrice(item.bestPrice * item.quantity, currency)}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {formatPrice(item.bestPrice, currency)} x {item.quantity}
-                        </p>
+                        {line.bestOffer ? (
+                          <>
+                            <p className="font-semibold text-gray-800">
+                              {formatCurrency(line.bestOffer.lineTotalUsd)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {formatCurrency(line.bestOffer.unitPriceUsd)} x {line.quantity}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-400">N/D</p>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-                {singleComparison.length > 0 && singleComparison[0].allAvailable && (
+                {/* Savings vs single */}
+                {singleData && singleData.cheapest && (
                   <div className="p-4 bg-green-50 border-t border-green-100">
                     <p className="text-sm text-green-700">
                       Ahorro vs. mejor supermercado unico:{' '}
                       <strong>
-                        {formatPrice(singleComparison[0].total - mixedComparison.total, currency)}
+                        {formatCurrency(singleData.cheapest.totalUsd - mixedData.grandTotalUsd)}
                       </strong>
                     </p>
                   </div>
                 )}
               </div>
             )}
+
+            {/* No comparison data */}
+            {!isComparing && !comparison && cartItems.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+                <AlertCircle size={36} className="text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">
+                  No se pudieron obtener datos de precios para la comparacion.
+                </p>
+                <button
+                  onClick={() => fetchComparison(activeCartId, comparisonMode)}
+                  className="mt-3 px-4 py-2 text-sm text-button-green hover:text-accent-green-dark font-medium"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      ) : (
-        /* Estado vacio */
+      ) : !isLoadingCart && carts.length > 0 && cartItems.length === 0 ? (
+        /* Empty cart */
         <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
           <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Tu carrito esta vacio</h3>
@@ -527,9 +631,25 @@ export default function CarritoPage() {
             <ArrowRight size={18} />
           </button>
         </div>
-      )}
+      ) : !isLoadingCart && carts.length === 0 ? (
+        /* No carts at all */
+        <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+          <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">No tienes carritos</h3>
+          <p className="text-gray-500 mb-6">
+            Crea tu primer carrito para empezar a comparar precios.
+          </p>
+          <button
+            onClick={() => setShowNewCartModal(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-button-green text-white rounded-xl hover:bg-accent-green-dark transition-colors font-medium"
+          >
+            <Plus size={18} />
+            Crear mi primer carrito
+          </button>
+        </div>
+      ) : null}
 
-      {/* Modal crear carrito */}
+      {/* New cart modal */}
       {showNewCartModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -549,7 +669,7 @@ export default function CarritoPage() {
               placeholder="Nombre del carrito"
               className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green mb-4"
               autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && createCart()}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateCart()}
             />
             <div className="flex gap-3">
               <button
@@ -559,7 +679,7 @@ export default function CarritoPage() {
                 Cancelar
               </button>
               <button
-                onClick={createCart}
+                onClick={handleCreateCart}
                 disabled={!newCartName.trim()}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-button-green text-white hover:bg-accent-green-dark transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -570,7 +690,7 @@ export default function CarritoPage() {
         </div>
       )}
 
-      {/* Modal confirmar eliminar */}
+      {/* Delete confirm modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -586,7 +706,7 @@ export default function CarritoPage() {
                 Cancelar
               </button>
               <button
-                onClick={() => deleteCart(showDeleteConfirm)}
+                onClick={() => handleDeleteCart(showDeleteConfirm)}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-medium"
               >
                 Eliminar

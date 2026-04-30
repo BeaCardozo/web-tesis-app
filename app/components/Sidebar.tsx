@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Menu,
   Store,
-  ClipboardList
+  ClipboardList,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -23,31 +24,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  {
-    name: 'Dashboard',
-    href: '/admin/dashboard',
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    name: 'Usuarios',
-    href: '/admin/usuarios',
-    icon: <Users size={20} />,
-  },
-  {
-    name: 'Supermercados',
-    href: '/admin/supermercados',
-    icon: <Store size={20} />,
-  },
-  {
-    name: 'Auditoría',
-    href: '/admin/auditoria',
-    icon: <ClipboardList size={20} />,
-  },
+  { name: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard size={22} /> },
+  { name: 'Usuarios', href: '/admin/usuarios', icon: <Users size={22} /> },
+  { name: 'Supermercados', href: '/admin/supermercados', icon: <Store size={22} /> },
+  { name: 'Auditoria', href: '/admin/auditoria', icon: <ClipboardList size={22} /> },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { isCollapsed, toggle, isMobile, setIsCollapsed } = useSidebar();
 
   const handleLogout = () => {
@@ -56,28 +41,28 @@ export function Sidebar() {
   };
 
   const closeSidebar = () => {
-    if (isMobile) {
-      setIsCollapsed(true);
-    }
+    if (isMobile) setIsCollapsed(true);
   };
+
+  const expanded = !isCollapsed || isMobile;
 
   return (
     <>
-      {/* Botón hamburguesa para móvil */}
+      {/* Boton hamburguesa movil */}
       {isMobile && isCollapsed && (
         <button
           onClick={toggle}
-          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
-          aria-label="Abrir menú"
+          className="fixed top-4 left-4 z-50 p-2.5 bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all"
+          aria-label="Abrir menu"
         >
-          <Menu size={24} className="text-gray-700" />
+          <Menu size={22} className="text-gray-600" />
         </button>
       )}
 
-      {/* Overlay para móvil */}
+      {/* Overlay movil */}
       {isMobile && !isCollapsed && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+          className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40 transition-opacity"
           onClick={closeSidebar}
         />
       )}
@@ -85,72 +70,42 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen bg-white shadow-lg z-50
-          transition-all duration-300 ease-in-out
+          fixed left-0 top-0 h-screen bg-white border-r border-gray-200/60 z-50
+          transition-all duration-300 ease-in-out flex flex-col
           ${isMobile
-            ? isCollapsed
-              ? '-translate-x-full w-64'
-              : 'translate-x-0 w-64'
-            : isCollapsed
-              ? 'w-20'
-              : 'w-64'
+            ? isCollapsed ? '-translate-x-full w-[272px]' : 'translate-x-0 w-[272px]'
+            : isCollapsed ? 'w-20' : 'w-[272px]'
           }
         `}
       >
-        {/* Header con logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
-          {(!isCollapsed || isMobile) && (
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="text-button-green" size={28} />
-              <span className="font-bold text-lg">
-                <span className="text-button-green">Caracas</span>
-                <span className="text-accent-green-dark">Ahorra</span>
-              </span>
+        {/* Logo */}
+        <div className={`shrink-0 ${expanded ? 'px-6 py-6' : 'px-3 py-6 flex justify-center'}`}>
+          <div className={`flex items-center ${expanded ? 'gap-3' : ''}`}>
+            <div className="w-10 h-10 bg-gradient-to-br from-button-green to-accent-green-dark rounded-xl flex items-center justify-center shrink-0">
+              <ShoppingCart className="text-white" size={20} />
             </div>
-          )}
-          {isCollapsed && !isMobile && (
-            <ShoppingCart className="text-button-green mx-auto" size={28} />
-          )}
-          <button
-            onClick={toggle}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
-          >
-            {isMobile ? (
-              <ChevronLeft size={18} />
-            ) : isCollapsed ? (
-              <ChevronRight size={18} />
-            ) : (
-              <ChevronLeft size={18} />
+            {expanded && (
+              <div>
+                <p className="font-bold text-[17px] tracking-tight leading-tight">
+                  <span className="text-gray-900">Caracas</span>
+                  <span className="text-button-green">Ahorra</span>
+                </p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Panel de administracion</p>
+              </div>
             )}
-          </button>
-        </div>
-
-        {/* Información del usuario */}
-        <div className={`p-4 border-b border-gray-100 ${isCollapsed && !isMobile ? 'text-center' : ''}`}>
-          <div className={`
-            w-10 h-10 rounded-full bg-primary flex items-center justify-center
-            text-accent-green-dark font-semibold
-            ${isCollapsed && !isMobile ? 'mx-auto' : ''}
-          `}>
-            {user?.name?.charAt(0).toUpperCase() || 'A'}
           </div>
-          {(!isCollapsed || isMobile) && (
-            <div className="mt-2">
-              <p className="font-medium text-gray-800 text-sm truncate">
-                {user?.name || 'Administrador'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {user?.email || 'admin@email.com'}
-              </p>
-              <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-primary/20 text-accent-green-dark rounded-full">
-                {user?.role || 'Administrador'}
-              </span>
-            </div>
+          {isMobile && expanded && (
+            <button onClick={closeSidebar} className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <X size={18} />
+            </button>
           )}
         </div>
 
-        {/* Navegación */}
-        <nav className="p-3 flex-1">
+        {/* Separador */}
+        <div className={`h-px bg-gray-100 shrink-0 ${expanded ? 'mx-6' : 'mx-4'}`} />
+
+        {/* Navegacion */}
+        <nav className="flex-1 px-3 pt-8 overflow-y-auto">
           <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -160,20 +115,20 @@ export function Sidebar() {
                     href={item.href}
                     onClick={closeSidebar}
                     className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-xl
+                      flex items-center gap-4 py-3.5 rounded-2xl
                       transition-all duration-200
                       ${isActive
-                        ? 'bg-primary text-accent-green-dark font-medium shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-gray-50 text-gray-900 font-semibold'
+                        : 'text-gray-500 hover:bg-gray-50/80 hover:text-gray-700'
                       }
-                      ${isCollapsed && !isMobile ? 'justify-center' : ''}
+                      ${expanded ? 'px-4' : 'justify-center px-3'}
                     `}
-                    title={isCollapsed && !isMobile ? item.name : undefined}
+                    title={!expanded ? item.name : undefined}
                   >
-                    <span className={isActive ? 'text-accent-green-dark' : ''}>
+                    <span className={`shrink-0 ${isActive ? 'text-button-green' : 'text-gray-400'}`}>
                       {item.icon}
                     </span>
-                    {(!isCollapsed || isMobile) && <span>{item.name}</span>}
+                    {expanded && <span className="text-[15px]">{item.name}</span>}
                   </Link>
                 </li>
               );
@@ -181,21 +136,32 @@ export function Sidebar() {
           </ul>
         </nav>
 
-        {/* Logout button */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-100">
+        {/* Cerrar sesion */}
+        <div className="px-3 pb-6 pt-2 shrink-0">
+          <div className={`h-px bg-gray-100 mb-4 ${expanded ? 'mx-3' : 'mx-2'}`} />
           <button
             onClick={handleLogout}
             className={`
-              w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
-              text-red-600 hover:bg-red-50 transition-colors
-              ${isCollapsed && !isMobile ? 'justify-center' : ''}
+              w-full flex items-center gap-4 py-3.5 rounded-2xl
+              text-gray-500 hover:bg-gray-50/80 hover:text-gray-700 transition-all duration-200
+              ${expanded ? 'px-4' : 'justify-center px-3'}
             `}
-            title={isCollapsed && !isMobile ? 'Cerrar sesión' : undefined}
+            title={!expanded ? 'Cerrar sesion' : undefined}
           >
-            <LogOut size={20} />
-            {(!isCollapsed || isMobile) && <span>Cerrar sesión</span>}
+            <LogOut size={22} className="shrink-0" />
+            {expanded && <span className="text-[15px]">Cerrar sesion</span>}
           </button>
         </div>
+
+        {/* Toggle flotante (solo desktop) */}
+        {!isMobile && (
+          <button
+            onClick={toggle}
+            className="absolute -right-3 top-8 w-6 h-6 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-all text-gray-400 hover:text-gray-600"
+          >
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+        )}
       </aside>
     </>
   );

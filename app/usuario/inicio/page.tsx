@@ -1,53 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Search,
   TrendingDown,
   ArrowRight,
   ShoppingCart,
-  Milk,
-  Beef,
-  Apple,
-  Croissant,
-  CupSoda,
-  SprayCan,
-  Heart,
   Package,
-  Wheat,
-  CircleDot,
   DollarSign,
   Star,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import {
-  userProducts,
-  userCategories,
-  getLowestPrice,
-  getHighestPrice,
-  getSavingsPercent,
-  formatPrice,
-} from '../../data/userMockData';
-
-const iconMap: Record<string, React.ReactNode> = {
-  Milk: <Milk size={24} />,
-  Beef: <Beef size={24} />,
-  Apple: <Apple size={24} />,
-  Croissant: <Croissant size={24} />,
-  CupSoda: <CupSoda size={24} />,
-  SprayCan: <SprayCan size={24} />,
-  Heart: <Heart size={24} />,
-  Package: <Package size={24} />,
-  Wheat: <Wheat size={24} />,
-  CircleDot: <CircleDot size={24} />,
-};
+  productsApi,
+  categoriesApi,
+  supermarketsApi,
+  ApiProduct,
+  ApiCategory,
+  ApiSupermarket,
+} from '../../lib/api';
+import { EXCHANGE_RATE } from '../../data/userMockData';
+import { useAuth } from '../../context/AuthContext';
 
 export default function InicioPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
 
-  const featuredProducts = userProducts.filter(p => p.isFeatured);
+  const [featuredProducts, setFeaturedProducts] = useState<ApiProduct[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [supermarkets, setSupermarkets] = useState<ApiSupermarket[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [featured, cats, sms, productsList] = await Promise.all([
+          productsApi.featured(),
+          categoriesApi.list(),
+          supermarketsApi.list(),
+          productsApi.list({ page: 1, limit: 1 }),
+        ]);
+        setFeaturedProducts(featured);
+        setCategories(cats);
+        setSupermarkets(sms);
+        setTotalProducts(productsList.total);
+      } catch {
+        // Silenciar errores en la página de inicio
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,21 +70,57 @@ export default function InicioPage() {
     router.push(`/usuario/productos?categoria=${categoryId}`);
   };
 
+  // Categorías con productos, sin padres vacíos
+  const leafCategories = useMemo(() => {
+    return categories
+      .filter(c => c.productCount > 0)
+      .sort((a, b) => b.productCount - a.productCount)
+      .slice(0, 10);
+  }, [categories]);
+
+  const formatCurrency = (usd: number) => {
+    if (currency === 'Bs') return `Bs. ${(usd * EXCHANGE_RATE).toFixed(2)}`;
+    return `$${usd.toFixed(2)}`;
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  };
+
+  const firstName = user?.firstName || user?.name?.split(' ')[0] || 'Usuario';
+  const userInitial = firstName.charAt(0).toUpperCase();
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header con selector de moneda */}
+      {/* Header personalizado */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Bienvenido a CaracasAhorra</h1>
-          <p className="text-gray-500 mt-1">Compara precios y ahorra en tu compra</p>
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-button-green/20 to-accent-teal/20 flex items-center justify-center ring-2 ring-button-green/10">
+            <span className="text-lg font-bold text-accent-green-dark">{userInitial}</span>
+          </div>
+          {/* Saludo */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              {getGreeting()}, <span className="text-button-green">{firstName}</span>
+            </h1>
+            <p className="text-gray-400 text-sm">
+              <span className="text-gray-300">·</span>
+              Compara precios y ahorra en todas tus compras
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
+        {/* Selector de moneda */}
+        <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm">
           <button
             onClick={() => setCurrency('USD')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
               currency === 'USD'
-                ? 'bg-button-green text-white'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-button-green text-white shadow-md shadow-button-green/25'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <DollarSign size={14} />
@@ -82,10 +128,10 @@ export default function InicioPage() {
           </button>
           <button
             onClick={() => setCurrency('Bs')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
               currency === 'Bs'
-                ? 'bg-button-green text-white'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-button-green text-white shadow-md shadow-button-green/25'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             Bs
@@ -93,103 +139,127 @@ export default function InicioPage() {
         </div>
       </div>
 
-      {/* Banner de busqueda */}
-      <div className="bg-gradient-to-r from-button-green to-accent-green-dark rounded-2xl p-8 text-white">
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-bold mb-2">Encuentra los mejores precios</h2>
-          <p className="text-white/80 mb-4">
-            Busca entre mas de {userProducts.length} productos y compara precios en los principales supermercados de Caracas.
-          </p>
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar productos..."
-                className="w-full pl-11 pr-4 py-3 rounded-xl text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary"
-              />
+      {/* Banner de busqueda - rediseñado */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-button-green via-accent-green to-accent-green-dark rounded-3xl p-8 md:p-10 text-white shadow-xl shadow-button-green/15">
+        {/* Elementos decorativos */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-white/5 rounded-full translate-y-1/2" />
+        <div className="absolute top-1/2 right-12 w-24 h-24 bg-white/8 rounded-full -translate-y-1/2" />
+        <div className="absolute bottom-4 left-8 w-16 h-16 bg-white/5 rounded-full" />
+
+        {/* Contenido del banner */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-xs font-medium text-white/90 mb-4 border border-white/10">
+              <Sparkles size={12} />
+              Mas de {totalProducts} productos disponibles
             </div>
-            <button
-              type="submit"
-              className="px-6 py-3 bg-white text-button-green font-medium rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              Buscar
-            </button>
-          </form>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight">
+              Encuentra los mejores precios
+            </h2>
+            <p className="text-white/70 mb-6 text-sm md:text-base leading-relaxed">
+              Compara precios en los principales supermercados de Caracas y ahorra en cada compra.
+            </p>
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar productos, marcas..."
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary bg-white/95 backdrop-blur-sm shadow-lg shadow-black/5"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-7 py-3.5 bg-white text-button-green font-semibold rounded-xl hover:bg-white/90 transition-all shadow-lg shadow-black/5 hover:shadow-xl"
+              >
+                Buscar
+              </button>
+            </form>
+          </div>
+
+          {/* Icono decorativo derecho */}
+          <div className="hidden lg:flex flex-col items-center gap-3 opacity-90">
+            <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 rotate-3">
+              <ShoppingCart size={36} className="text-white/80" />
+            </div>
+            <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 -rotate-6 -mt-2 ml-8">
+              <TrendingDown size={24} className="text-white/80" />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <TrendingDown size={20} className="text-green-600" />
+            <div className="w-11 h-11 bg-gradient-to-br from-green-50 to-green-100 rounded-xl flex items-center justify-center">
+              <TrendingDown size={20} className="text-button-green" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Ahorro promedio</p>
-              <p className="text-lg font-bold text-gray-800">23.5%</p>
+              <p className="text-xs text-gray-400 font-medium">Compara y ahorra</p>
+              <p className="text-lg font-bold text-gray-800">Precios al dia</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div className="w-11 h-11 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl flex items-center justify-center">
               <Package size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Productos disponibles</p>
-              <p className="text-lg font-bold text-gray-800">{userProducts.length}</p>
+              <p className="text-xs text-gray-400 font-medium">Productos disponibles</p>
+              <p className="text-lg font-bold text-gray-800">{totalProducts}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+            <div className="w-11 h-11 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl flex items-center justify-center">
               <Star size={20} className="text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Supermercados</p>
-              <p className="text-lg font-bold text-gray-800">6</p>
+              <p className="text-xs text-gray-400 font-medium">Supermercados</p>
+              <p className="text-lg font-bold text-gray-800">{supermarkets.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Categorias */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">Categorias</h2>
-          <button
-            onClick={() => router.push('/usuario/productos')}
-            className="flex items-center gap-1 text-sm text-button-green hover:text-accent-green-dark transition-colors"
-          >
-            Ver todas <ArrowRight size={16} />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {userCategories.slice(0, 10).map((cat) => (
+      {leafCategories.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-800">Categorias</h2>
             <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
-              className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-100 hover:border-button-green hover:shadow-md transition-all group"
+              onClick={() => router.push('/usuario/productos')}
+              className="flex items-center gap-1 text-sm text-button-green hover:text-accent-green-dark transition-colors"
             >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                style={{ backgroundColor: cat.bgColor, color: cat.color }}
-              >
-                {iconMap[cat.iconName] || <Package size={24} />}
-              </div>
-              <span className="text-sm text-gray-700 font-medium text-center leading-tight">
-                {cat.name}
-              </span>
-              <span className="text-xs text-gray-400">{cat.productCount} productos</span>
+              Ver todas <ArrowRight size={16} />
             </button>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {leafCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryClick(cat.id)}
+                className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-100 hover:border-button-green hover:shadow-md transition-all group"
+              >
+                <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center transition-transform group-hover:scale-110">
+                  <Package size={24} className="text-button-green" />
+                </div>
+                <span className="text-sm text-gray-700 font-medium text-center leading-tight">
+                  {cat.name}
+                </span>
+                <span className="text-xs text-gray-400">{cat.productCount} productos</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Productos destacados */}
       <div>
@@ -202,70 +272,83 @@ export default function InicioPage() {
             Ver todos <ArrowRight size={16} />
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {featuredProducts.map((product) => {
-            const lowest = getLowestPrice(product);
-            const highest = getHighestPrice(product);
-            const savings = getSavingsPercent(product);
 
-            return (
-              <div
-                key={product.id}
-                onClick={() => router.push(`/usuario/producto/${product.id}`)}
-                className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-button-green/30 transition-all cursor-pointer group"
-              >
-                {/* Imagen placeholder */}
-                <div className="h-36 bg-gradient-to-br from-primary-lighter to-primary-lightest flex items-center justify-center relative">
-                  <Package size={40} className="text-button-green/40" />
-                  {savings > 0 && (
-                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
-                      -{savings}%
-                    </div>
-                  )}
-                </div>
-                {/* Info */}
-                <div className="p-4">
-                  <p className="text-xs text-button-green font-medium mb-1">{product.category}</p>
-                  <h3 className="font-semibold text-gray-800 text-sm mb-1 group-hover:text-button-green transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-xs text-gray-400 mb-3">{product.unit}</p>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-xs text-gray-400">Desde</p>
-                      <p className="text-lg font-bold text-button-green">
-                        {lowest ? formatPrice(lowest.price, currency) : '-'}
-                      </p>
-                    </div>
-                    {highest && lowest && highest.price !== lowest.price && (
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400">Hasta</p>
-                        <p className="text-sm text-gray-400 line-through">
-                          {formatPrice(highest.price, currency)}
-                        </p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={32} className="animate-spin text-button-green" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {featuredProducts.map((product) => {
+              const cheapestUsd = product.priceSnapshot?.cheapestPriceUsd;
+              const cheapestBs = product.priceSnapshot?.cheapestPriceBs;
+              const unit = `${product.baseAmount} ${product.unitType}`;
+
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => router.push(`/usuario/producto/${product.id}`)}
+                  className="bg-primary-lightest/30 rounded-xl border border-button-green/20 overflow-hidden hover:shadow-lg hover:border-button-green/40 transition-all cursor-pointer group"
+                >
+                  {/* Imagen */}
+                  <div className="h-36 bg-white flex items-center justify-center relative overflow-hidden">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-contain p-2"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <Package size={40} className={`text-button-green/40 ${product.imageUrl ? 'hidden' : ''}`} />
+                  </div>
+                  {/* Info */}
+                  <div className="p-4">
+                    <p className="text-xs text-button-green font-medium mb-1">{product.category.name}</p>
+                    <h3 className="font-semibold text-gray-800 text-sm mb-1 group-hover:text-button-green transition-colors line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-gray-400 mb-3">{unit}</p>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        {cheapestUsd != null ? (
+                          <>
+                            <p className="text-xs text-gray-400">Desde</p>
+                            <p className="text-lg font-bold text-button-green">
+                              {currency === 'USD'
+                                ? `$${cheapestUsd.toFixed(2)}`
+                                : `Bs. ${(cheapestBs ?? cheapestUsd * EXCHANGE_RATE).toFixed(2)}`}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-400">Precio no disponible</p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-                    <span className="text-xs text-gray-400">
-                      {product.prices.length} supermercados
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/usuario/producto/${product.id}`);
-                      }}
-                      className="flex items-center gap-1 text-xs text-button-green font-medium hover:text-accent-green-dark"
-                    >
-                      <ShoppingCart size={14} />
-                      Comparar
-                    </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-button-green/10">
+                      <span className="text-xs text-gray-400 truncate">
+                        {product.priceSnapshot?.cheapestSupermarket || product.brand?.name || ''}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/usuario/producto/${product.id}`);
+                        }}
+                        className="flex items-center gap-1 text-xs text-button-green font-medium hover:text-accent-green-dark"
+                      >
+                        <ShoppingCart size={14} />
+                        Comparar
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,13 +8,16 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // En producción, nunca almacenar passwords en el frontend
   role: UserRole;
+  firstName?: string | null;
+  lastName?: string | null;
   createdAt: string;
-  lastLogin: string;
   status: 'activo' | 'inactivo';
   avatar?: string;
-  supermarketId?: string; // Solo para Analistas - ID del supermercado al que pertenecen
+  supermarketId?: string;
+  // Campos legacy para mock data (no vienen del backend)
+  password?: string;
+  lastLogin?: string;
 }
 
 export interface Supermarket {

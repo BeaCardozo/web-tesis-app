@@ -1,7 +1,34 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, mockUsers } from '../data/mockData';
+import { User, UserRole } from '../data/mockData';
+import { authApi, BackendUser, clearTokens } from '../lib/api';
+
+// ============================================
+// MAPEO DE ROLES BACKEND → FRONTEND
+// ============================================
+const ROLE_MAP: Record<string, UserRole> = {
+  admin: 'Administrador',
+  partner: 'Analista',
+  consumer: 'Usuario',
+};
+
+function mapBackendUser(backendUser: BackendUser): User {
+  const firstName = backendUser.firstName || '';
+  const lastName = backendUser.lastName || '';
+  const name = [firstName, lastName].filter(Boolean).join(' ') || backendUser.email;
+
+  return {
+    id: backendUser.id,
+    name,
+    email: backendUser.email,
+    role: ROLE_MAP[backendUser.role] || 'Usuario',
+    firstName: backendUser.firstName,
+    lastName: backendUser.lastName,
+    createdAt: backendUser.createdAt,
+    status: backendUser.isActive ? 'activo' : 'inactivo',
+  };
+}
 
 // ============================================
 // TIPOS
@@ -28,60 +55,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar si hay sesión guardada al cargar
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    const restoreSession = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        setUser(JSON.parse(savedUser));
+        const backendUser = await authApi.getMe();
+        const mappedUser = mapBackendUser(backendUser);
+        setUser(mappedUser);
+        localStorage.setItem('currentUser', JSON.stringify(mappedUser));
       } catch {
+        // Token inválido o expirado, limpiar sesión
+        clearTokens();
         localStorage.removeItem('currentUser');
       }
-    }
-    setIsLoading(false);
+
+      setIsLoading(false);
+    };
+
+    restoreSession();
   }, []);
 
   // ============================================
   // LOGIN
-  // En producción: Reemplazar con llamada a API
   // ============================================
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // 1. Obtener tokens del backend
+      await authApi.login(email, password);
 
-    // TODO: Reemplazar con llamada a API
-    // const response = await fetch('/api/auth/login', {
-    //   method: 'POST',
-    //   body: JSON.stringify({ email, password }),
-    // });
+      // 2. Obtener perfil del usuario con su rol
+      const backendUser = await authApi.getMe();
+      const mappedUser = mapBackendUser(backendUser);
 
-    // Buscar usuario en datos mock
-    const foundUser = mockUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-
-    if (foundUser) {
-      // Crear objeto de usuario sin password para guardar
-      const userWithoutPassword = { ...foundUser };
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+      setUser(mappedUser);
+      localStorage.setItem('currentUser', JSON.stringify(mappedUser));
       setIsLoading(false);
       return { success: true };
+    } catch (error) {
+      setIsLoading(false);
+      const message = error instanceof Error ? error.message : 'Error al iniciar sesión';
+      return { success: false, error: message };
     }
-
-    setIsLoading(false);
-    return { success: false, error: 'Email o contraseña incorrectos' };
   };
 
   // ============================================
   // LOGOUT
-  // En producción: Agregar llamada a API para invalidar token
   // ============================================
   const logout = () => {
+    authApi.logout();
     setUser(null);
     localStorage.removeItem('currentUser');
-    // TODO: Llamar a API para invalidar sesión
-    // await fetch('/api/auth/logout', { method: 'POST' });
   };
 
   const value: AuthContextType = {

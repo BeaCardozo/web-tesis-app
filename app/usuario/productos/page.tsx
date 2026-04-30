@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
@@ -11,115 +11,112 @@ import {
   DollarSign,
   ChevronDown,
   ArrowUpDown,
+  Loader2,
 } from 'lucide-react';
 import {
-  userProducts,
-  userCategories,
-  getLowestPrice,
-  getHighestPrice,
-  getSavingsPercent,
-  formatPrice,
-} from '../../data/userMockData';
-import { mockSupermarkets } from '../../data/mockData';
+  productsApi,
+  categoriesApi,
+  ApiProduct,
+  ApiCategory,
+} from '../../lib/api';
+import { formatPrice, EXCHANGE_RATE } from '../../data/userMockData';
 import { Pagination } from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 
-type SortOption = 'relevance' | 'priceAsc' | 'priceDesc' | 'nameAsc';
+type SortOption = 'nameAsc' | 'nameDesc' | 'priceAsc' | 'priceDesc';
+
+const SORT_LABELS: Record<SortOption, string> = {
+  nameAsc: 'Nombre: A - Z',
+  nameDesc: 'Nombre: Z - A',
+  priceAsc: 'Precio: Menor a Mayor',
+  priceDesc: 'Precio: Mayor a Menor',
+};
+
+function getSavingsText(product: ApiProduct): number {
+  const snap = product.priceSnapshot;
+  if (!snap?.cheapestPriceUsd) return 0;
+  // Sin datos de precio máximo en el snapshot del listado, no podemos calcular ahorro
+  return 0;
+}
 
 export default function ProductosPage() {
+  return (
+    <Suspense>
+      <ProductosContent />
+    </Suspense>
+  );
+}
+
+function ProductosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const [searchQuery, setSearchQuery] = useState(searchParams.get('buscar') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '');
-  const [selectedSupermarket, setSelectedSupermarket] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('relevance');
-  const [maxPrice, setMaxPrice] = useState(50);
+  const [sortBy, setSortBy] = useState<SortOption>('nameAsc');
   const [showFilters, setShowFilters] = useState(false);
   const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
 
-  // Filtrar productos
-  const filteredProducts = useMemo(() => {
-    let results = [...userProducts];
+  // Paginación del API
+  const [apiPage, setApiPage] = useState(1);
+  const [apiLimit, setApiLimit] = useState(12);
+  const totalPages = Math.ceil(totalProducts / apiLimit);
 
-    // Busqueda por texto
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter(
-        p =>
-          p.name.toLowerCase().includes(query) ||
-          p.category.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query)
-      );
-    }
-
-    // Filtrar por categoria
-    if (selectedCategory) {
-      results = results.filter(p => p.categoryId === selectedCategory);
-    }
-
-    // Filtrar por supermercado
-    if (selectedSupermarket) {
-      results = results.filter(p =>
-        p.prices.some(price => price.supermarketId === selectedSupermarket)
-      );
-    }
-
-    // Filtrar por precio maximo
-    results = results.filter(p => {
-      const lowest = getLowestPrice(p);
-      return lowest ? lowest.price <= maxPrice : true;
-    });
-
-    // Ordenar
-    switch (sortBy) {
-      case 'priceAsc':
-        results.sort((a, b) => {
-          const la = getLowestPrice(a);
-          const lb = getLowestPrice(b);
-          return (la?.price || 0) - (lb?.price || 0);
-        });
-        break;
-      case 'priceDesc':
-        results.sort((a, b) => {
-          const la = getLowestPrice(a);
-          const lb = getLowestPrice(b);
-          return (lb?.price || 0) - (la?.price || 0);
-        });
-        break;
-      case 'nameAsc':
-        results.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-    }
-
-    return results;
-  }, [searchQuery, selectedCategory, selectedSupermarket, sortBy, maxPrice]);
-
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    totalPages,
-    paginatedData,
-    totalItems,
-    resetToFirstPage,
-  } = usePagination({ data: filteredProducts, initialItemsPerPage: 12 });
-
-  // Reset pagina al cambiar filtros
+  // Cargar categorías una sola vez
   useEffect(() => {
-    resetToFirstPage();
-  }, [searchQuery, selectedCategory, selectedSupermarket, sortBy, maxPrice, resetToFirstPage]);
+    categoriesApi.list().then(setCategories).catch(() => {});
+  }, []);
+
+  // Cargar productos cuando cambian filtros
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const data = await productsApi.list({
+          page: apiPage,
+          limit: apiLimit,
+          search: searchQuery || undefined,
+          category: selectedCategory || undefined,
+          sortBy: sortBy,
+        });
+        setProducts(data.items);
+        setTotalProducts(data.total);
+      } catch {
+        setError('Error al cargar productos. Verifica que el servidor esté corriendo.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Debounce para la búsqueda
+    const timeout = setTimeout(fetchProducts, searchQuery ? 400 : 0);
+    return () => clearTimeout(timeout);
+  }, [apiPage, apiLimit, searchQuery, selectedCategory, sortBy]);
+
+  // Reset página al cambiar filtros
+  useEffect(() => {
+    setApiPage(1);
+  }, [searchQuery, selectedCategory, sortBy]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('');
-    setSelectedSupermarket('');
-    setSortBy('relevance');
-    setMaxPrice(50);
+    setSortBy('nameAsc');
   };
 
-  const hasActiveFilters = selectedCategory || selectedSupermarket || sortBy !== 'relevance' || maxPrice < 50;
+  const hasActiveFilters = !!selectedCategory || sortBy !== 'nameAsc';
+
+  // Categorías que tienen productos (filtrar las que son subcategorías con productos)
+  const leafCategories = useMemo(() => {
+    return categories.filter(c => c.productCount > 0).sort((a, b) => a.name.localeCompare(b.name));
+  }, [categories]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -128,7 +125,7 @@ export default function ProductosPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Productos</h1>
           <p className="text-gray-500 mt-1">
-            {totalItems} producto{totalItems !== 1 ? 's' : ''} encontrado{totalItems !== 1 ? 's' : ''}
+            {totalProducts} producto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -205,10 +202,9 @@ export default function ProductosPage() {
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="appearance-none w-full sm:w-48 pl-10 pr-8 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green cursor-pointer"
             >
-              <option value="relevance">Relevancia</option>
-              <option value="priceAsc">Precio: Menor a Mayor</option>
-              <option value="priceDesc">Precio: Mayor a Menor</option>
-              <option value="nameAsc">Nombre: A - Z</option>
+              {Object.entries(SORT_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
             </select>
             <ArrowUpDown size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -217,7 +213,7 @@ export default function ProductosPage() {
 
         {/* Panel de filtros expandible */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Categoria */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1.5">Categoria</label>
@@ -227,49 +223,17 @@ export default function ProductosPage() {
                 className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green cursor-pointer"
               >
                 <option value="">Todas las categorias</option>
-                {userCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                {leafCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} ({cat.productCount})
+                  </option>
                 ))}
               </select>
-            </div>
-
-            {/* Supermercado */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1.5">Supermercado</label>
-              <select
-                value={selectedSupermarket}
-                onChange={(e) => setSelectedSupermarket(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green cursor-pointer"
-              >
-                <option value="">Todos los supermercados</option>
-                {mockSupermarkets.map((sm) => (
-                  <option key={sm.id} value={sm.id}>{sm.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Precio maximo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1.5">
-                Precio maximo: {formatPrice(maxPrice, currency)}
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={50}
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-button-green"
-              />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>{formatPrice(1, currency)}</span>
-                <span>{formatPrice(50, currency)}</span>
-              </div>
             </div>
 
             {/* Limpiar filtros */}
             {hasActiveFilters && (
-              <div className="sm:col-span-3">
+              <div className="flex items-end">
                 <button
                   onClick={clearFilters}
                   className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
@@ -283,61 +247,77 @@ export default function ProductosPage() {
         )}
       </div>
 
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 size={32} className="animate-spin text-button-green" />
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Grid de productos */}
-      {paginatedData.length > 0 ? (
+      {!isLoading && !error && products.length > 0 && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {paginatedData.map((product) => {
-              const lowest = getLowestPrice(product);
-              const highest = getHighestPrice(product);
-              const savings = getSavingsPercent(product);
+            {products.map((product) => {
+              const cheapestUsd = product.priceSnapshot?.cheapestPriceUsd;
+              const cheapestBs = product.priceSnapshot?.cheapestPriceBs;
+              const cheapestSupermarket = product.priceSnapshot?.cheapestSupermarket;
+              const unit = `${product.baseAmount} ${product.unitType}`;
 
               return (
                 <div
                   key={product.id}
                   onClick={() => router.push(`/usuario/producto/${product.id}`)}
-                  className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-button-green/30 transition-all cursor-pointer group"
+                  className="bg-primary-lightest/30 rounded-xl border border-button-green/20 overflow-hidden hover:shadow-lg hover:border-button-green/40 transition-all cursor-pointer group"
                 >
-                  {/* Imagen placeholder */}
-                  <div className="h-32 bg-gradient-to-br from-primary-lighter to-primary-lightest flex items-center justify-center relative">
-                    <Package size={36} className="text-button-green/40" />
-                    {savings > 0 && (
-                      <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
-                        -{savings}%
-                      </div>
-                    )}
-                    {product.isFeatured && (
-                      <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                        <span>Destacado</span>
-                      </div>
-                    )}
+                  {/* Imagen */}
+                  <div className="h-32 bg-white flex items-center justify-center relative overflow-hidden">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-contain p-2"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <Package size={36} className={`text-button-green/40 ${product.imageUrl ? 'hidden' : ''}`} />
                   </div>
                   {/* Info */}
                   <div className="p-4">
-                    <p className="text-xs text-button-green font-medium mb-1">{product.category}</p>
-                    <h3 className="font-semibold text-gray-800 text-sm mb-1 group-hover:text-button-green transition-colors">
+                    <p className="text-xs text-button-green font-medium mb-1">{product.category.name}</p>
+                    <h3 className="font-semibold text-gray-800 text-sm mb-1 group-hover:text-button-green transition-colors line-clamp-2">
                       {product.name}
                     </h3>
-                    <p className="text-xs text-gray-400 mb-3">{product.unit}</p>
+                    <p className="text-xs text-gray-400 mb-3">{unit}</p>
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-xs text-gray-400">Desde</p>
-                        <p className="text-lg font-bold text-button-green">
-                          {lowest ? formatPrice(lowest.price, currency) : '-'}
-                        </p>
+                        {cheapestUsd != null ? (
+                          <>
+                            <p className="text-xs text-gray-400">Desde</p>
+                            <p className="text-lg font-bold text-button-green">
+                              {currency === 'USD'
+                                ? `$${cheapestUsd.toFixed(2)}`
+                                : `Bs. ${(cheapestBs ?? cheapestUsd * EXCHANGE_RATE).toFixed(2)}`}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-400">Precio no disponible</p>
+                        )}
                       </div>
-                      {highest && lowest && highest.price !== lowest.price && (
-                        <div className="text-right">
-                          <p className="text-xs text-gray-400">Hasta</p>
-                          <p className="text-sm text-gray-400 line-through">
-                            {formatPrice(highest.price, currency)}
-                          </p>
-                        </div>
-                      )}
                     </div>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-                      <span className="text-xs text-gray-400">
-                        {product.prices.length} supermercados
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-button-green/10">
+                      <span className="text-xs text-gray-400 truncate">
+                        {cheapestSupermarket || product.brand?.name || ''}
                       </span>
                       <button
                         onClick={(e) => {
@@ -359,19 +339,21 @@ export default function ProductosPage() {
           {/* Paginacion */}
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <Pagination
-              currentPage={currentPage}
+              currentPage={apiPage}
               totalPages={totalPages}
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={setItemsPerPage}
+              totalItems={totalProducts}
+              itemsPerPage={apiLimit}
+              onPageChange={setApiPage}
+              onItemsPerPageChange={(n) => { setApiLimit(n); setApiPage(1); }}
               itemsPerPageOptions={[8, 12, 24]}
               itemName="productos"
             />
           </div>
         </>
-      ) : (
-        /* Estado vacio */
+      )}
+
+      {/* Estado vacio */}
+      {!isLoading && !error && products.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
           <Search size={48} className="text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
