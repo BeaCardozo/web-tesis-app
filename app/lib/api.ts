@@ -828,3 +828,55 @@ export const supermarketsApi = {
     return json.data;
   },
 };
+
+// ============================================
+// ENDPOINTS DE OFERTAS
+// ============================================
+export interface ApiDeal {
+  productId: string;
+  productName: string;
+  productSlug: string;
+  unitType: string;
+  baseAmount: number;
+  storeName: string;
+  supermarketName: string;
+  supermarketSlug: string;
+  priceUsd: number;
+  priceBs: number;
+  pricePerUnitUsd: number;
+  pricePerUnitBs: number;
+  originalPriceUsd: number | null;
+  originalPriceBs: number | null;
+  discountPct: number;
+  imageUrl: string | null;
+  scrapedAt: string;
+}
+
+export interface ApiDealsCount {
+  total: number;
+  by_supermarket: { supermarket_name: string; supermarket_slug: string; total: number }[];
+}
+
+export const offersApi = {
+  async listDeals(query?: { supermarket?: string; limit?: number; offset?: number }): Promise<ApiDeal[]> {
+    const params = new URLSearchParams();
+    if (query?.supermarket) params.set('supermarket', query.supermarket);
+    if (query?.limit) params.set('limit', String(query.limit));
+    if (query?.offset) params.set('offset', String(query.offset));
+
+    const url = `${API_BASE_URL}/offers/deals?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Error al cargar ofertas');
+
+    const json: ApiResponse<ApiDeal[]> = await res.json();
+    return json.data;
+  },
+
+  async getCount(): Promise<ApiDealsCount> {
+    const res = await fetch(`${API_BASE_URL}/offers/deals/count`);
+    if (!res.ok) throw new Error('Error al cargar conteo de ofertas');
+
+    const json: ApiResponse<ApiDealsCount> = await res.json();
+    return json.data;
+  },
+};

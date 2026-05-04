@@ -1,71 +1,217 @@
 'use client';
 
-import { Tag, Clock, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Tag, Package, Loader2, DollarSign, ShoppingCart, TrendingDown } from 'lucide-react';
+import { offersApi, ApiDeal } from '../../lib/api';
+import { EXCHANGE_RATE } from '../../data/userMockData';
 
 export default function OfertasPage() {
+  const router = useRouter();
+  const [deals, setDeals] = useState<ApiDeal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
+  const [filterSuper, setFilterSuper] = useState('');
+
+  useEffect(() => {
+    const fetchDeals = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const data = await offersApi.listDeals({ limit: 200 });
+        setDeals(data);
+      } catch {
+        setError('Error al cargar ofertas. Verifica que el servidor este corriendo.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDeals();
+  }, []);
+
+  const supermarkets = [...new Set(deals.map((d) => d.supermarketName))].sort();
+
+  const formatPriceVal = (usd: number, bs: number) => {
+    if (currency === 'Bs') return `Bs. ${bs.toFixed(2)}`;
+    return `$${usd.toFixed(2)}`;
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Ofertas</h1>
-        <p className="text-gray-500 mt-1">Las mejores ofertas de supermercados en Caracas</p>
-      </div>
-
-      {/* Coming soon card */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-button-green via-accent-green to-accent-green-dark rounded-3xl p-10 md:p-14 text-white shadow-xl shadow-button-green/15">
-        {/* Elementos decorativos */}
-        <div className="absolute top-0 right-0 w-56 h-56 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-white/5 rounded-full translate-y-1/2" />
-        <div className="absolute top-1/2 right-10 w-20 h-20 bg-white/8 rounded-full -translate-y-1/2" />
-        <div className="absolute bottom-3 left-6 w-14 h-14 bg-white/5 rounded-full" />
-
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-20 h-20 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 mb-6">
-            <Tag size={36} className="text-white" />
-          </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-xs font-medium text-white/90 mb-4 border border-white/10">
-            <Clock size={12} />
-            En desarrollo
-          </div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">Proximamente</h2>
-          <p className="text-white/70 max-w-md leading-relaxed">
-            Estamos trabajando en traerte las mejores ofertas y promociones de los supermercados de Caracas. Pronto podras ver descuentos en tiempo real.
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Ofertas</h1>
+          <p className="text-gray-500 mt-1">
+            {deals.length} producto{deals.length !== 1 ? 's' : ''} en oferta
           </p>
         </div>
-      </div>
-
-      {/* Preview cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-100">
-          <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center">
-            <Tag size={22} className="text-button-green" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-800 text-sm">Ofertas del dia</p>
-            <p className="text-xs text-gray-400 mt-0.5">Descuentos actualizados diariamente</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-100">
-          <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center">
-            <Sparkles size={22} className="text-button-green" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-800 text-sm">Mejores precios</p>
-            <p className="text-xs text-gray-400 mt-0.5">Comparacion automatica de precios</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-100">
-          <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center">
-            <Clock size={22} className="text-button-green" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-800 text-sm">Alertas de precio</p>
-            <p className="text-xs text-gray-400 mt-0.5">Notificaciones personalizadas</p>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
+            <button
+              onClick={() => setCurrency('USD')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                currency === 'USD'
+                  ? 'bg-button-green text-white'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <DollarSign size={14} />
+              USD
+            </button>
+            <button
+              onClick={() => setCurrency('Bs')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                currency === 'Bs'
+                  ? 'bg-button-green text-white'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Bs
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Filtro por supermercado */}
+      {!isLoading && deals.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setFilterSuper('')}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              !filterSuper
+                ? 'bg-button-green text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Todos
+          </button>
+          {supermarkets.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterSuper(filterSuper === s ? '' : s)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                filterSuper === s
+                  ? 'bg-button-green text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 size={32} className="animate-spin text-button-green" />
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Grid de ofertas */}
+      {!isLoading && !error && deals.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {deals
+            .filter((d) => !filterSuper || d.supermarketName === filterSuper)
+            .map((deal) => (
+              <div
+                key={`${deal.productId}-${deal.supermarketSlug}`}
+                onClick={() => router.push(`/usuario/producto/${deal.productId}`)}
+                className="bg-primary-lightest/30 rounded-xl border border-button-green/20 overflow-hidden hover:shadow-lg hover:border-button-green/40 transition-all cursor-pointer group relative"
+              >
+                {/* Badge de descuento */}
+                {deal.discountPct > 0 && (
+                  <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                    <TrendingDown size={12} />
+                    -{deal.discountPct}%
+                  </div>
+                )}
+
+                {/* Imagen */}
+                <div className="h-32 bg-white flex items-center justify-center relative overflow-hidden">
+                  {deal.imageUrl ? (
+                    <img
+                      src={deal.imageUrl}
+                      alt={deal.productName}
+                      className="h-full w-full object-contain p-2"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <Package size={36} className={`text-button-green/40 ${deal.imageUrl ? 'hidden' : ''}`} />
+                </div>
+
+                {/* Info */}
+                <div className="p-4">
+                  <p className="text-xs text-button-green font-medium mb-1">{deal.supermarketName}</p>
+                  <h3 className="font-semibold text-gray-800 text-sm mb-1 group-hover:text-button-green transition-colors line-clamp-2">
+                    {deal.productName}
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-3">
+                    {deal.baseAmount} {deal.unitType} &middot; {deal.storeName}
+                  </p>
+
+                  {/* Precios */}
+                  <div className="flex items-end gap-2">
+                    <p className="text-lg font-bold text-button-green">
+                      {formatPriceVal(deal.priceUsd, deal.priceBs)}
+                    </p>
+                    {deal.originalPriceUsd && deal.originalPriceUsd > deal.priceUsd && (
+                      <p className="text-sm text-gray-400 line-through">
+                        {formatPriceVal(deal.originalPriceUsd, deal.originalPriceBs ?? deal.originalPriceUsd * EXCHANGE_RATE)}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-button-green/10">
+                    <span className="text-xs text-gray-400">
+                      {deal.discountPct > 0
+                        ? `Ahorras ${formatPriceVal(
+                            deal.originalPriceUsd! - deal.priceUsd,
+                            (deal.originalPriceBs ?? 0) - deal.priceBs
+                          )}`
+                        : 'En oferta'}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/usuario/producto/${deal.productId}`);
+                      }}
+                      className="flex items-center gap-1 text-xs text-button-green font-medium hover:text-accent-green-dark"
+                    >
+                      <ShoppingCart size={14} />
+                      Ver
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Estado vacio */}
+      {!isLoading && !error && deals.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+          <Tag size={48} className="text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            No hay ofertas disponibles
+          </h3>
+          <p className="text-gray-500">
+            En este momento no se detectaron descuentos en los supermercados. Las ofertas se actualizan automaticamente con cada scraping.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
