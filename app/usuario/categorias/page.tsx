@@ -1,71 +1,104 @@
 'use client';
 
-import { LayoutGrid, Clock, Search, Filter } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, Package, ArrowRight, Loader2, X, LayoutGrid } from 'lucide-react';
+import { categoriesApi, ApiCategory } from '../../lib/api';
 
 export default function CategoriasPage() {
+  const router = useRouter();
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    categoriesApi.list()
+      .then(setCategories)
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const filtered = useMemo(() => {
+    const withProducts = categories
+      .filter(c => c.productCount > 0)
+      .sort((a, b) => b.productCount - a.productCount);
+
+    if (!searchQuery.trim()) return withProducts;
+    const query = searchQuery.toLowerCase();
+    return withProducts.filter(c => c.name.toLowerCase().includes(query));
+  }, [categories, searchQuery]);
+
+  const handleCategoryClick = (categoryId: string) => {
+    router.push(`/usuario/productos?categoria=${categoryId}`);
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Categorias</h1>
-        <p className="text-gray-500 mt-1">Explora productos organizados por categoria</p>
+        <h1 className="text-2xl font-bold text-gray-800">Categorías</h1>
+        <p className="text-gray-500 mt-1">
+          Explora productos organizados por categoría
+        </p>
       </div>
 
-      {/* Coming soon card */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-button-green via-accent-green to-accent-green-dark rounded-3xl p-10 md:p-14 text-white shadow-xl shadow-button-green/15">
-        {/* Elementos decorativos */}
-        <div className="absolute top-0 right-0 w-56 h-56 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-white/5 rounded-full translate-y-1/2" />
-        <div className="absolute top-1/2 right-10 w-20 h-20 bg-white/8 rounded-full -translate-y-1/2" />
-        <div className="absolute bottom-3 left-6 w-14 h-14 bg-white/5 rounded-full" />
-
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-20 h-20 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 mb-6">
-            <LayoutGrid size={36} className="text-white" />
-          </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-xs font-medium text-white/90 mb-4 border border-white/10">
-            <Clock size={12} />
-            En desarrollo
-          </div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">Proximamente</h2>
-          <p className="text-white/70 max-w-md leading-relaxed">
-            Estamos preparando una vista dedicada de categorias para que puedas navegar y explorar productos de forma mas organizada.
-          </p>
-        </div>
+      {/* Barra de búsqueda */}
+      <div className="relative">
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar categorías..."
+          className="w-full pl-11 pr-10 py-3 rounded-2xl bg-white border border-gray-100 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green shadow-sm"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Preview cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-100">
-          <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center">
-            <LayoutGrid size={22} className="text-button-green" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-800 text-sm">Todas las categorias</p>
-            <p className="text-xs text-gray-400 mt-0.5">Navega por tipo de producto</p>
-          </div>
+      {/* Contenido */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={32} className="animate-spin text-button-green" />
         </div>
-
-        <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-100">
-          <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center">
-            <Search size={22} className="text-button-green" />
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+            <LayoutGrid size={28} className="text-gray-300" />
           </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-800 text-sm">Busqueda por categoria</p>
-            <p className="text-xs text-gray-400 mt-0.5">Encuentra lo que necesitas rapido</p>
-          </div>
+          <p className="text-gray-500 font-medium">No se encontraron categorías</p>
+          <p className="text-gray-400 text-sm mt-1">Intenta con otro término de búsqueda</p>
         </div>
-
-        <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-100">
-          <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center">
-            <Filter size={22} className="text-button-green" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-800 text-sm">Filtros avanzados</p>
-            <p className="text-xs text-gray-400 mt-0.5">Subcategorias y marcas</p>
-          </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {filtered.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategoryClick(cat.id)}
+              className="group flex flex-col items-center text-center gap-3 p-6 bg-white rounded-2xl border border-gray-100 hover:border-button-green/30 hover:shadow-lg transition-all"
+            >
+              <div className="w-14 h-14 bg-gradient-to-br from-button-green/15 to-accent-teal/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Package size={24} className="text-button-green" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 group-hover:text-button-green transition-colors leading-tight">
+                  {cat.name}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {cat.productCount} producto{cat.productCount !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <ArrowRight size={14} className="text-gray-200 group-hover:text-button-green group-hover:translate-x-1 transition-all" />
+            </button>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

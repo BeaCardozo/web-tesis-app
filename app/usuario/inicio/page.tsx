@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Search,
   TrendingDown,
   ArrowRight,
   ShoppingCart,
@@ -12,6 +11,8 @@ import {
   Star,
   Loader2,
   Sparkles,
+  Tag,
+  Zap,
 } from 'lucide-react';
 import {
   productsApi,
@@ -27,8 +28,9 @@ import { useAuth } from '../../context/AuthContext';
 export default function InicioPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
   const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const [featuredProducts, setFeaturedProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -59,12 +61,43 @@ export default function InicioPage() {
     fetchData();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/usuario/productos?buscar=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 3);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  const banners = [
+    {
+      gradient: 'from-button-green via-accent-green to-accent-green-dark',
+      BadgeIcon: Sparkles,
+      badge: `Más de ${totalProducts} productos`,
+      title: 'Compara precios, ahorra en grande',
+      subtitle: 'Encuentra las mejores ofertas en los principales supermercados de Caracas.',
+      Icon1: ShoppingCart,
+      Icon2: TrendingDown,
+    },
+    {
+      gradient: 'from-accent-teal via-accent-green-dark to-accent-green',
+      BadgeIcon: Tag,
+      badge: 'Actualizado diariamente',
+      title: 'Precios frescos cada día',
+      subtitle: 'Datos actualizados constantemente para que siempre tengas la información más reciente.',
+      Icon1: Sparkles,
+      Icon2: Tag,
+    },
+    {
+      gradient: 'from-accent-green-dark via-button-green to-accent-olive',
+      BadgeIcon: Zap,
+      badge: 'Compra inteligente',
+      title: 'Arma tu carrito perfecto',
+      subtitle: 'Crea tu lista de compras y descubre en qué supermercado te sale más barato.',
+      Icon1: Star,
+      Icon2: Zap,
+    },
+  ];
 
   const handleCategoryClick = (categoryId: string) => {
     router.push(`/usuario/productos?categoria=${categoryId}`);
@@ -75,7 +108,7 @@ export default function InicioPage() {
     return categories
       .filter(c => c.productCount > 0)
       .sort((a, b) => b.productCount - a.productCount)
-      .slice(0, 10);
+      .slice(0, 5);
   }, [categories]);
 
   const formatCurrency = (usd: number) => {
@@ -94,7 +127,7 @@ export default function InicioPage() {
   const userInitial = firstName.charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-7xl  space-y-10">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header personalizado */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -139,64 +172,74 @@ export default function InicioPage() {
         </div>
       </div>
 
-      {/* Banner de busqueda - rediseñado */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-button-green via-accent-green to-accent-green-dark rounded-3xl p-8 md:p-10 text-white shadow-xl shadow-button-green/15">
-        {/* Elementos decorativos */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-white/5 rounded-full translate-y-1/2" />
-        <div className="absolute top-1/2 right-12 w-24 h-24 bg-white/8 rounded-full -translate-y-1/2" />
-        <div className="absolute bottom-4 left-8 w-16 h-16 bg-white/5 rounded-full" />
+      {/* Carousel de banners */}
+      <div
+        className="relative overflow-hidden rounded-3xl shadow-xl shadow-button-green/15"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {banners.map((banner, index) => (
+          <div
+            key={index}
+            className={`${index === 0 ? 'relative' : 'absolute inset-0'} bg-gradient-to-br ${banner.gradient} p-8 md:p-10 text-white transition-opacity duration-1000 ease-in-out ${
+              index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          >
+            {/* Elementos decorativos */}
+            <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+            <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-white/5 rounded-full translate-y-1/2" />
+            <div className="absolute top-1/2 right-12 w-24 h-24 bg-white/8 rounded-full -translate-y-1/2" />
+            <div className="absolute bottom-4 left-8 w-16 h-16 bg-white/5 rounded-full" />
 
-        {/* Contenido del banner */}
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-xs font-medium text-white/90 mb-4 border border-white/10">
-              <Sparkles size={12} />
-              Mas de {totalProducts} productos disponibles
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight">
-              Encuentra los mejores precios
-            </h2>
-            <p className="text-white/70 mb-6 text-sm md:text-base leading-relaxed">
-              Compara precios en los principales supermercados de Caracas y ahorra en cada compra.
-            </p>
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar productos, marcas..."
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary bg-white/95 backdrop-blur-sm shadow-lg shadow-black/5"
-                />
+            {/* Contenido */}
+            <div className="relative z-10 flex items-center justify-between min-h-[140px]">
+              <div className="max-w-lg">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-xs font-medium text-white/90 mb-4 border border-white/10">
+                  <banner.BadgeIcon size={12} />
+                  {banner.badge}
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
+                  {banner.title}
+                </h2>
+                <p className="text-white/70 text-sm md:text-base leading-relaxed">
+                  {banner.subtitle}
+                </p>
               </div>
-              <button
-                type="submit"
-                className="px-7 py-3.5 bg-white text-button-green font-semibold rounded-xl hover:bg-white/90 transition-all shadow-lg shadow-black/5 hover:shadow-xl"
-              >
-                Buscar
-              </button>
-            </form>
-          </div>
 
-          {/* Icono decorativo derecho */}
-          <div className="hidden lg:flex flex-col items-center gap-3 opacity-90">
-            <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 rotate-3">
-              <ShoppingCart size={36} className="text-white/80" />
-            </div>
-            <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 -rotate-6 -mt-2 ml-8">
-              <TrendingDown size={24} className="text-white/80" />
+              {/* Iconos decorativos */}
+              <div className="hidden lg:flex flex-col items-center gap-3 opacity-90">
+                <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 rotate-3">
+                  <banner.Icon1 size={36} className="text-white/80" />
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 -rotate-6 -mt-2 ml-8">
+                  <banner.Icon2 size={24} className="text-white/80" />
+                </div>
+              </div>
             </div>
           </div>
+        ))}
+
+        {/* Indicadores */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentSlide
+                  ? 'bg-white w-6'
+                  : 'bg-white/40 hover:bg-white/60 w-2'
+              }`}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Categorias */}
+      {/* Categorías */}
       {leafCategories.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Categorias</h2>
+            <h2 className="text-lg font-bold text-gray-800">Categorías</h2>
             <button
               onClick={() => router.push('/usuario/productos')}
               className="flex items-center gap-1 text-sm text-button-green hover:text-accent-green-dark transition-colors"
@@ -209,15 +252,17 @@ export default function InicioPage() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.id)}
-                className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-100 hover:border-button-green hover:shadow-md transition-all group"
+                className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-gray-100 hover:border-button-green/30 hover:shadow-md transition-all group"
               >
-                <div className="w-12 h-12 bg-primary-lightest rounded-xl flex items-center justify-center transition-transform group-hover:scale-110">
-                  <Package size={24} className="text-button-green" />
+                <div className="w-9 h-9 bg-gradient-to-br from-button-green/15 to-accent-teal/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Package size={16} className="text-button-green" />
                 </div>
-                <span className="text-sm text-gray-700 font-medium text-center leading-tight">
-                  {cat.name}
-                </span>
-                <span className="text-xs text-gray-400">{cat.productCount} productos</span>
+                <div className="text-left min-w-0">
+                  <p className="text-sm font-medium text-gray-700 group-hover:text-button-green transition-colors truncate">
+                    {cat.name}
+                  </p>
+                  <p className="text-xs text-gray-400">{cat.productCount} prod.</p>
+                </div>
               </button>
             ))}
           </div>
@@ -227,7 +272,7 @@ export default function InicioPage() {
       {/* Productos destacados */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">Productos destacados</h2>
+          <h2 className="text-lg font-bold text-gray-800">Productos Disponibles</h2>
           <button
             onClick={() => router.push('/usuario/productos')}
             className="flex items-center gap-1 text-sm text-button-green hover:text-accent-green-dark transition-colors"

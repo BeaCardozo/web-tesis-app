@@ -211,14 +211,14 @@ export default function CarritoPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
+      <div className="max-w-5xl mx-auto flex items-center justify-center py-20">
         <Loader2 size={32} className="animate-spin text-button-green" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

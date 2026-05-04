@@ -177,7 +177,7 @@ export default function PriceHistoryPage() {
   const stats = calculateStats();
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-800">Historial de Precios</h1>

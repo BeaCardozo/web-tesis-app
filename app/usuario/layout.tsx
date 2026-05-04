@@ -52,7 +52,7 @@ export default function UsuarioLayout({
             ? 'ml-20'
             : 'ml-[272px]'
       }`}>
-        <div className="p-6">
+        <div className="px-6 pt-10 pb-6">
           {children}
         </div>
       </main>

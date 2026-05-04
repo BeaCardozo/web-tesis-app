@@ -154,7 +154,7 @@ export default function AnalistaDashboardPage() {
   const { supermarket, catalogStats } = dashboard;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header del supermercado */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">

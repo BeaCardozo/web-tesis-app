@@ -127,7 +127,7 @@ export default function ProductoDetallePage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
+      <div className="max-w-5xl mx-auto flex items-center justify-center py-20">
         <Loader2 size={32} className="animate-spin text-button-green" />
       </div>
     );
@@ -135,7 +135,7 @@ export default function ProductoDetallePage() {
 
   if (error || !product) {
     return (
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
           <Package size={48} className="text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Producto no encontrado</h3>
@@ -198,7 +198,7 @@ export default function ProductoDetallePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Navegacion */}
       <div className="flex items-center justify-between">
         <button

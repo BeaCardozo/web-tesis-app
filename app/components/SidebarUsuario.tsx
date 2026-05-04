@@ -27,7 +27,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: 'Inicio', href: '/usuario/inicio', icon: <Home size={22} /> },
   { name: 'Productos', href: '/usuario/productos', icon: <Search size={22} /> },
-  { name: 'Categorias', href: '/usuario/categorias', icon: <LayoutGrid size={22} /> },
+  { name: 'Categorías', href: '/usuario/categorias', icon: <LayoutGrid size={22} /> },
   { name: 'Ofertas', href: '/usuario/ofertas', icon: <Tag size={22} /> },
   { name: 'Carrito', href: '/usuario/carrito', icon: <ShoppingCart size={22} /> },
   { name: 'Perfil', href: '/usuario/perfil', icon: <User size={22} /> },
