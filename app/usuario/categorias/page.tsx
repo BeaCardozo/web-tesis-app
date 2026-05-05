@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Package, ArrowRight, Loader2, X, LayoutGrid } from 'lucide-react';
+import { Search, Loader2, X, LayoutGrid } from 'lucide-react';
 import { categoriesApi, ApiCategory } from '../../lib/api';
+import { getCategoryIcon } from '../../lib/categoryIcons';
 
 export default function CategoriasPage() {
   const router = useRouter();
@@ -77,26 +78,28 @@ export default function CategoriasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {filtered.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
-              className="group flex flex-col items-center text-center gap-3 p-6 bg-white rounded-2xl border border-gray-100 hover:border-button-green/30 hover:shadow-lg transition-all"
-            >
-              <div className="w-14 h-14 bg-gradient-to-br from-button-green/15 to-accent-teal/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Package size={24} className="text-button-green" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800 group-hover:text-button-green transition-colors leading-tight">
-                  {cat.name}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {cat.productCount} producto{cat.productCount !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <ArrowRight size={14} className="text-gray-200 group-hover:text-button-green group-hover:translate-x-1 transition-all" />
-            </button>
-          ))}
+          {filtered.map((cat) => {
+            const Icon = getCategoryIcon(cat.name);
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryClick(cat.id)}
+                className="group flex flex-col items-center text-center gap-3 p-6 bg-white rounded-2xl border border-gray-100 hover:border-button-green/30 hover:shadow-lg transition-all"
+              >
+                <div className="w-14 h-14 bg-gradient-to-br from-button-green/15 to-accent-teal/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Icon size={24} className="text-button-green" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 group-hover:text-button-green transition-colors leading-tight">
+                    {cat.name}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {cat.productCount} producto{cat.productCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

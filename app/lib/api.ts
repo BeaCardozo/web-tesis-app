@@ -353,7 +353,6 @@ export interface DashboardStats {
     totalSupermarkets: number;
     totalCarts: number;
     totalCartItems: number;
-    totalFavorites: number;
   };
   usersByRole: { role: BackendRole; count: number }[];
   usersOverTime: { month: string; label: string; count: number }[];

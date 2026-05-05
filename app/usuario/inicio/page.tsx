@@ -22,6 +22,7 @@ import {
   ApiCategory,
   ApiSupermarket,
 } from '../../lib/api';
+import { getCategoryIcon } from '../../lib/categoryIcons';
 import { EXCHANGE_RATE } from '../../data/userMockData';
 import { useAuth } from '../../context/AuthContext';
 
@@ -241,30 +242,33 @@ export default function InicioPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-800">Categorías</h2>
             <button
-              onClick={() => router.push('/usuario/productos')}
+              onClick={() => router.push('/usuario/categorias')}
               className="flex items-center gap-1 text-sm text-button-green hover:text-accent-green-dark transition-colors"
             >
               Ver todas <ArrowRight size={16} />
             </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {leafCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategoryClick(cat.id)}
-                className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-gray-100 hover:border-button-green/30 hover:shadow-md transition-all group"
-              >
-                <div className="w-9 h-9 bg-gradient-to-br from-button-green/15 to-accent-teal/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package size={16} className="text-button-green" />
-                </div>
-                <div className="text-left min-w-0">
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-button-green transition-colors truncate">
-                    {cat.name}
-                  </p>
-                  <p className="text-xs text-gray-400">{cat.productCount} prod.</p>
-                </div>
-              </button>
-            ))}
+            {leafCategories.map((cat) => {
+              const CatIcon = getCategoryIcon(cat.name);
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className="flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-gray-100 hover:border-button-green/30 hover:shadow-md transition-all group"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-button-green/15 to-accent-teal/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <CatIcon size={16} className="text-button-green" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-sm font-medium text-gray-700 group-hover:text-button-green transition-colors truncate">
+                      {cat.name}
+                    </p>
+                    <p className="text-xs text-gray-400">{cat.productCount} prod.</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
