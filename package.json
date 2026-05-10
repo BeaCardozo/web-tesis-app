@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:public-api": "node scripts/check-no-public-scraper.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",

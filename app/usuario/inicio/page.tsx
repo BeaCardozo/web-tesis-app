@@ -17,10 +17,8 @@ import {
 import {
   productsApi,
   categoriesApi,
-  supermarketsApi,
   ApiProduct,
   ApiCategory,
-  ApiSupermarket,
 } from '../../lib/api';
 import { getCategoryIcon } from '../../lib/categoryIcons';
 import { EXCHANGE_RATE } from '../../data/userMockData';
@@ -35,26 +33,25 @@ export default function InicioPage() {
 
   const [featuredProducts, setFeaturedProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [supermarkets, setSupermarkets] = useState<ApiSupermarket[]>([]);
   const [totalProducts, setTotalProducts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+      setLoadError('');
       try {
-        const [featured, cats, sms, productsList] = await Promise.all([
+        const [featured, cats, productsList] = await Promise.all([
           productsApi.featured(),
           categoriesApi.list(),
-          supermarketsApi.list(),
           productsApi.list({ page: 1, limit: 1 }),
         ]);
         setFeaturedProducts(featured);
         setCategories(cats);
-        setSupermarkets(sms);
         setTotalProducts(productsList.total);
-      } catch {
-        // Silenciar errores en la página de inicio
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : 'No se pudieron cargar los datos. Revisa que la API esté en marcha.');
       } finally {
         setIsLoading(false);
       }
@@ -129,6 +126,12 @@ export default function InicioPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {loadError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
+          {loadError}
+        </div>
+      )}
+
       {/* Header personalizado */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

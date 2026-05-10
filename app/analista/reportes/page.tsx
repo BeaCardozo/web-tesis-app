@@ -20,6 +20,7 @@ import {
   priceComparison,
   supermarketStats
 } from '../../data/mockData';
+import { MockDataBanner } from '../../components/MockDataBanner';
 
 // ============================================
 // TIPOS DE REPORTES
@@ -268,6 +269,8 @@ export default function ReportsPage() {
         <h1 className="text-2xl font-bold text-gray-800">Reportes y Exportar</h1>
         <p className="text-gray-500">Genera reportes de tu supermercado en diferentes formatos</p>
       </div>
+
+      <MockDataBanner />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tipos de reportes */}

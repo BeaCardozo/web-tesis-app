@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { auditLogs, AuditLog, AuditAction } from '../../data/mockData';
 import { Pagination } from '../../components/Pagination';
+import { MockDataBanner } from '../../components/MockDataBanner';
 import { usePagination } from '../../hooks/usePagination';
 
 // ============================================
@@ -116,6 +117,8 @@ export default function AuditPage() {
         <h1 className="text-2xl font-bold text-gray-800">Auditoría del Sistema</h1>
         <p className="text-gray-500">Historial de actividades y acciones en la plataforma</p>
       </div>
+
+      <MockDataBanner />
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

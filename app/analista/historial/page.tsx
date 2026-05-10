@@ -18,6 +18,7 @@ import {
   mockSupermarkets,
   PriceHistoryEntry
 } from '../../data/mockData';
+import { MockDataBanner } from '../../components/MockDataBanner';
 
 // ============================================
 // COMPONENTE DE GRÁFICO DE LÍNEAS
@@ -183,6 +184,8 @@ export default function PriceHistoryPage() {
         <h1 className="text-2xl font-bold text-gray-800">Historial de Precios</h1>
         <p className="text-gray-500">Analiza la evolución de precios de tus productos</p>
       </div>
+
+      <MockDataBanner />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Selector de producto */}

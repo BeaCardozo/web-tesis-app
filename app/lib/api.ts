@@ -21,6 +21,15 @@ export function clearTokens() {
   localStorage.removeItem('refreshToken');
 }
 
+/** Mensaje de error de respuestas Nest (`message` string o array de validación). */
+export function parseApiErrorMessage(body: unknown, fallback: string): string {
+  if (!body || typeof body !== 'object') return fallback;
+  const m = (body as { message?: unknown }).message;
+  if (typeof m === 'string') return m;
+  if (Array.isArray(m)) return m.map(String).join(' ');
+  return fallback;
+}
+
 // ============================================
 // FETCH CON AUTH Y REFRESH AUTOMÁTICO
 // ============================================
@@ -94,6 +103,8 @@ export interface BackendUser {
   id: string;
   email: string;
   role: BackendRole;
+  supermarketId?: string | null;
+  supermarket?: { id: string; name: string; slug: string } | null;
   firstName: string | null;
   lastName: string | null;
   phoneNumber: string | null;
@@ -117,8 +128,8 @@ export const authApi = {
     });
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Credenciales incorrectas');
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Credenciales incorrectas'));
     }
 
     const json: ApiResponse<LoginResponse> = await res.json();
@@ -140,8 +151,8 @@ export const authApi = {
     });
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Error al registrar usuario');
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Error al registrar usuario'));
     }
 
     const json: ApiResponse<BackendUser> = await res.json();
@@ -166,6 +177,19 @@ export const authApi = {
       clearTokens();
     }
   },
+
+  async updateProfile(data: { name?: string; email?: string }): Promise<BackendUser> {
+    const res = await authFetch(`${API_BASE_URL}/users/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(err, 'No se pudo actualizar el perfil'));
+    }
+    const json: ApiResponse<BackendUser> = await res.json();
+    return json.data;
+  },
 };
 
 // ============================================
@@ -177,6 +201,8 @@ export interface CreateUserPayload {
   firstName?: string;
   lastName?: string;
   role: BackendRole;
+  /** Obligatorio en API si `role === 'partner'`. */
+  supermarketId?: number;
 }
 
 export interface UpdateUserPayload {
@@ -185,6 +211,7 @@ export interface UpdateUserPayload {
   email?: string;
   role?: BackendRole;
   isActive?: boolean;
+  supermarketId?: number;
 }
 
 export const adminUsersApi = {
@@ -192,7 +219,7 @@ export const adminUsersApi = {
     const res = await authFetch(`${API_BASE_URL}/users`);
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cargar usuarios');
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar usuarios'));
     }
     const json: ApiResponse<BackendUser[]> = await res.json();
     return json.data;
@@ -205,7 +232,7 @@ export const adminUsersApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al crear usuario');
+      throw new Error(parseApiErrorMessage(error, 'Error al crear usuario'));
     }
     const json: ApiResponse<BackendUser> = await res.json();
     return json.data;
@@ -218,7 +245,7 @@ export const adminUsersApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al actualizar usuario');
+      throw new Error(parseApiErrorMessage(error, 'Error al actualizar usuario'));
     }
     const json: ApiResponse<BackendUser> = await res.json();
     return json.data;
@@ -230,7 +257,7 @@ export const adminUsersApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cambiar estado');
+      throw new Error(parseApiErrorMessage(error, 'Error al cambiar estado'));
     }
     const json: ApiResponse<BackendUser> = await res.json();
     return json.data;
@@ -242,7 +269,7 @@ export const adminUsersApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al eliminar usuario');
+      throw new Error(parseApiErrorMessage(error, 'Error al eliminar usuario'));
     }
   },
 };
@@ -283,7 +310,7 @@ export const adminSupermarketsApi = {
     const res = await authFetch(`${API_BASE_URL}/supermarkets/admin`);
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cargar supermercados');
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar supermercados'));
     }
     const json: ApiResponse<AdminSupermarket[]> = await res.json();
     return json.data;
@@ -296,7 +323,7 @@ export const adminSupermarketsApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al crear supermercado');
+      throw new Error(parseApiErrorMessage(error, 'Error al crear supermercado'));
     }
     const json: ApiResponse<AdminSupermarket> = await res.json();
     return json.data;
@@ -309,7 +336,7 @@ export const adminSupermarketsApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al actualizar supermercado');
+      throw new Error(parseApiErrorMessage(error, 'Error al actualizar supermercado'));
     }
     const json: ApiResponse<AdminSupermarket> = await res.json();
     return json.data;
@@ -321,7 +348,7 @@ export const adminSupermarketsApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cambiar estado');
+      throw new Error(parseApiErrorMessage(error, 'Error al cambiar estado'));
     }
     const json: ApiResponse<AdminSupermarket> = await res.json();
     return json.data;
@@ -333,7 +360,7 @@ export const adminSupermarketsApi = {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al eliminar supermercado');
+      throw new Error(parseApiErrorMessage(error, 'Error al eliminar supermercado'));
     }
   },
 };
@@ -374,7 +401,7 @@ export const adminStatsApi = {
     const res = await authFetch(`${API_BASE_URL}/admin/stats`);
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cargar estadísticas');
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar estadísticas'));
     }
     const json: ApiResponse<DashboardStats> = await res.json();
     return json.data;
@@ -434,6 +461,110 @@ export interface ProductListResponse {
   items: ApiProduct[];
 }
 
+export interface ProductsQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  sortBy?: string;
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+/** Respuesta plana del listado Nest (canonicalProduct + category); el backend ignora query params hoy. */
+type NestProductRow = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  categoryId: number;
+  baseUnit: string;
+  baseQuantity?: string | number;
+  updatedAt: string;
+  category?: { id: number; name: string };
+};
+
+function toQty(v: unknown): number {
+  if (v == null) return 1;
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  return Number.isFinite(n) ? n : 1;
+}
+
+function mapNestRowToApiProduct(row: NestProductRow): ApiProduct {
+  const catId = row.category?.id ?? row.categoryId;
+  const catName = row.category?.name ?? '—';
+  return {
+    id: String(row.id),
+    name: row.name,
+    slug: row.slug ?? null,
+    description: row.description ?? null,
+    unitType: String(row.baseUnit),
+    baseAmount: toQty(row.baseQuantity),
+    imageUrl: row.imageUrl ?? null,
+    brand: null,
+    category: { id: String(catId), name: catName },
+    updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : new Date(row.updatedAt).toISOString(),
+    priceSnapshot: null,
+  };
+}
+
+function sortApiProducts(items: ApiProduct[], sortBy: string | undefined): ApiProduct[] {
+  const copy = [...items];
+  switch (sortBy) {
+    case 'nameDesc':
+      return copy.sort((a, b) => b.name.localeCompare(a.name, 'es'));
+    case 'priceAsc':
+    case 'priceDesc': {
+      const dir = sortBy === 'priceAsc' ? 1 : -1;
+      return copy.sort((a, b) => {
+        const pa = a.priceSnapshot?.cheapestPriceUsd;
+        const pb = b.priceSnapshot?.cheapestPriceUsd;
+        const ha = pa != null;
+        const hb = pb != null;
+        if (ha && hb && pa !== pb) return (pa - pb) * dir;
+        if (ha !== hb) return ha ? -1 : 1;
+        return a.name.localeCompare(b.name, 'es');
+      });
+    }
+    default:
+      return copy.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }
+}
+
+function normalizeProductList(data: unknown, query: ProductsQuery): ProductListResponse {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 12;
+
+  if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as ProductListResponse).items)) {
+    return data as ProductListResponse;
+  }
+
+  const rows = Array.isArray(data) ? (data as NestProductRow[]) : [];
+  let mapped = rows.map(mapNestRowToApiProduct);
+
+  const cat = query.category?.trim();
+  if (cat) {
+    mapped = mapped.filter((p) => p.category.id === cat);
+  }
+  const q = query.search?.trim().toLowerCase();
+  if (q) {
+    mapped = mapped.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.slug?.toLowerCase().includes(q) ?? false),
+    );
+  }
+
+  mapped = sortApiProducts(mapped, query.sortBy);
+
+  const total = mapped.length;
+  const start = (page - 1) * limit;
+  const items = mapped.slice(start, start + limit);
+
+  return { page, limit, total, items };
+}
+
 export interface ApiCategory {
   id: string;
   name: string;
@@ -450,16 +581,6 @@ export interface ApiSupermarket {
 // ============================================
 // ENDPOINTS DE PRODUCTOS
 // ============================================
-export interface ProductsQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-  sortBy?: string;
-  minPrice?: number;
-  maxPrice?: number;
-}
-
 export const productsApi = {
   async list(query: ProductsQuery = {}): Promise<ProductListResponse> {
     const params = new URLSearchParams();
@@ -476,8 +597,8 @@ export const productsApi = {
 
     if (!res.ok) throw new Error('Error al cargar productos');
 
-    const json: ApiResponse<ProductListResponse> = await res.json();
-    return json.data;
+    const json: ApiResponse<ProductListResponse | NestProductRow[]> = await res.json();
+    return normalizeProductList(json.data, query);
   },
 
   async featured(): Promise<ApiProduct[]> {
@@ -493,6 +614,60 @@ export const productsApi = {
     if (!res.ok) throw new Error('Producto no encontrado');
 
     const json: ApiResponse<ApiProductDetail> = await res.json();
+    return json.data;
+  },
+
+  async priceObservations(
+    id: string,
+    query?: {
+      page?: number;
+      page_size?: number;
+      chain_slug?: string;
+      date_from?: string;
+      date_to?: string;
+    },
+  ): Promise<{ page: number; page_size: number; total: number; items: unknown[] }> {
+    const params = new URLSearchParams();
+    if (query?.page != null) params.set('page', String(query.page));
+    if (query?.page_size != null) params.set('page_size', String(query.page_size));
+    if (query?.chain_slug) params.set('chain_slug', query.chain_slug);
+    if (query?.date_from) params.set('date_from', query.date_from);
+    if (query?.date_to) params.set('date_to', query.date_to);
+    const q = params.toString();
+    const res = await fetch(`${API_BASE_URL}/products/${id}/prices/observations${q ? `?${q}` : ''}`);
+    if (!res.ok) throw new Error('No se pudieron cargar observaciones de precio');
+    const json: ApiResponse<{ page: number; page_size: number; total: number; items: unknown[] }> = await res.json();
+    return json.data;
+  },
+
+  async priceHistoryDaily(id: string, days?: number): Promise<unknown[]> {
+    const qs = days != null ? `?days=${days}` : '';
+    const res = await fetch(`${API_BASE_URL}/products/${id}/prices/history/daily${qs}`);
+    if (!res.ok) throw new Error('No se pudo cargar el histórico diario');
+    const json: ApiResponse<unknown[]> = await res.json();
+    return Array.isArray(json.data) ? json.data : [];
+  },
+
+  async offersHistory(
+    id: string,
+    query?: {
+      page?: number;
+      page_size?: number;
+      chain_slug?: string;
+      date_from?: string;
+      date_to?: string;
+    },
+  ): Promise<{ page: number; page_size: number; total: number; items: unknown[] }> {
+    const params = new URLSearchParams();
+    if (query?.page != null) params.set('page', String(query.page));
+    if (query?.page_size != null) params.set('page_size', String(query.page_size));
+    if (query?.chain_slug) params.set('chain_slug', query.chain_slug);
+    if (query?.date_from) params.set('date_from', query.date_from);
+    if (query?.date_to) params.set('date_to', query.date_to);
+    const q = params.toString();
+    const res = await fetch(`${API_BASE_URL}/products/${id}/offers/history${q ? `?${q}` : ''}`);
+    if (!res.ok) throw new Error('No se pudo cargar el histórico de ofertas');
+    const json: ApiResponse<{ page: number; page_size: number; total: number; items: unknown[] }> = await res.json();
     return json.data;
   },
 };
@@ -588,7 +763,7 @@ export const analystApi = {
     const res = await authFetch(`${API_BASE_URL}/partners/me/dashboard`);
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cargar dashboard del analista');
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar dashboard del analista'));
     }
     const json: ApiResponse<AnalystDashboard> = await res.json();
     return json.data;
@@ -603,7 +778,7 @@ export const analystApi = {
     const res = await authFetch(`${API_BASE_URL}/partners/me/products?${params.toString()}`);
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al cargar productos');
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar productos'));
     }
     const json: ApiResponse<AnalystProductsResponse> = await res.json();
     return json.data;
@@ -857,9 +1032,15 @@ export interface ApiDealsCount {
 }
 
 export const offersApi = {
-  async listDeals(query?: { supermarket?: string; limit?: number; offset?: number }): Promise<ApiDeal[]> {
+  async listDeals(query?: {
+    supermarket?: string;
+    productId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiDeal[]> {
     const params = new URLSearchParams();
     if (query?.supermarket) params.set('supermarket', query.supermarket);
+    if (query?.productId) params.set('productId', query.productId);
     if (query?.limit) params.set('limit', String(query.limit));
     if (query?.offset) params.set('offset', String(query.offset));
 
@@ -877,5 +1058,24 @@ export const offersApi = {
 
     const json: ApiResponse<ApiDealsCount> = await res.json();
     return json.data;
+  },
+};
+
+// ============================================
+// METADATOS DWH (FX, frescura de scrape)
+// ============================================
+export const metaApi = {
+  async fxCurrent(): Promise<Record<string, unknown> | null> {
+    const res = await fetch(`${API_BASE_URL}/meta/fx/current`);
+    if (!res.ok) return null;
+    const json: ApiResponse<Record<string, unknown> | null> = await res.json();
+    return json.data ?? null;
+  },
+
+  async scrapeFreshness(): Promise<Record<string, unknown>[]> {
+    const res = await fetch(`${API_BASE_URL}/meta/scrape-freshness`);
+    if (!res.ok) return [];
+    const json: ApiResponse<Record<string, unknown>[]> = await res.json();
+    return Array.isArray(json.data) ? json.data : [];
   },
 };

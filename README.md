@@ -1,5 +1,11 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## API (Caracas Ahorra)
+
+- Define **`NEXT_PUBLIC_API_URL`** apuntando solo al **ca-api** Nest (p. ej. `http://localhost:4003/api`). Todas las peticiones del navegador van a esa base.
+- **No** expongas la URL del API de lectura del DWH (ca-scraper, puerto típico `8000`) como variable `NEXT_PUBLIC_*`. Esa integración ocurre en el servidor Nest (`SCRAPER_API_BASE_URL` en ca-api).
+- Comprobación opcional: `npm run check:public-api` (falla si aparecen patrones prohibidos bajo `app/`).
+
 ## Getting Started
 
 First, run the development server:

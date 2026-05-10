@@ -11,11 +11,16 @@ export default function CategoriasPage() {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    categoriesApi.list()
+    setLoadError('');
+    categoriesApi
+      .list()
       .then(setCategories)
-      .catch(() => {})
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : 'Error al cargar categorías');
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -42,6 +47,12 @@ export default function CategoriasPage() {
           Explora productos organizados por categoría
         </p>
       </div>
+
+      {loadError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
+          {loadError}
+        </div>
+      )}
 
       {/* Barra de búsqueda */}
       <div className="relative">

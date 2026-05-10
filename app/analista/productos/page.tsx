@@ -51,6 +51,7 @@ export default function ProductsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Debounce para búsqueda
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, reloadToken]);
 
   useEffect(() => {
     fetchProducts();
@@ -159,9 +160,18 @@ export default function ProductsPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 rounded-xl text-red-600">
-          <AlertTriangle size={20} />
-          <span>{error}</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-red-50 rounded-xl text-red-600 border border-red-100">
+          <div className="flex items-center gap-3 min-w-0">
+            <AlertTriangle size={20} className="flex-shrink-0" />
+            <span className="break-words">{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReloadToken((t) => t + 1)}
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-red-200 text-sm font-medium hover:bg-red-100/50 transition-colors"
+          >
+            Reintentar
+          </button>
         </div>
       )}
 

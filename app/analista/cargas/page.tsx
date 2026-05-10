@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { mockSupermarkets, uploadHistory, UploadHistory } from '../../data/mockData';
 import { Pagination } from '../../components/Pagination';
+import { MockDataBanner } from '../../components/MockDataBanner';
 import { usePagination } from '../../hooks/usePagination';
 
 // ============================================
@@ -291,6 +292,8 @@ export default function CargasPage() {
           Sube archivos CSV con productos y precios para {supermarket?.name}
         </p>
       </div>
+
+      <MockDataBanner />
 
       {/* Mensaje de resultado */}
       {uploadResult && (

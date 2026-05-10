@@ -38,6 +38,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -113,11 +114,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('currentUser');
   };
 
+  const refreshProfile = async () => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) return;
+    const backendUser = await authApi.getMe();
+    const mappedUser = mapBackendUser(backendUser);
+    setUser(mappedUser);
+    localStorage.setItem('currentUser', JSON.stringify(mappedUser));
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
     login,
     logout,
+    refreshProfile,
     isAuthenticated: !!user,
   };
 

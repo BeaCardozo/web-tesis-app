@@ -194,6 +194,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -209,7 +210,7 @@ export default function DashboardPage() {
       }
     };
     fetchStats();
-  }, []);
+  }, [reloadToken]);
 
   if (isLoading) {
     return (
@@ -221,8 +222,15 @@ export default function DashboardPage() {
 
   if (error || !stats) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-4">
         <p className="text-red-600">{error || 'No se pudieron cargar las estadísticas'}</p>
+        <button
+          type="button"
+          onClick={() => setReloadToken((t) => t + 1)}
+          className="px-4 py-2 rounded-xl bg-white border border-red-200 text-red-700 text-sm font-medium hover:bg-red-100/50 transition-colors"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }

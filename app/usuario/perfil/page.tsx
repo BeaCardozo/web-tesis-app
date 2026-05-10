@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -18,9 +18,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../lib/api';
 
 export default function PerfilPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -29,17 +30,39 @@ export default function PerfilPage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setIsEditing(false);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    setSaveError('');
+    setIsSaving(true);
+    try {
+      await authApi.updateProfile({
+        name: editName.trim(),
+        email: editEmail.trim(),
+      });
+      await refreshProfile();
+      setSaved(true);
+      setIsEditing(false);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Error al guardar');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
+
+  useEffect(() => {
+    if (user) {
+      setEditName(user.name || '');
+      setEditEmail(user.email || '');
+    }
+  }, [user]);
 
   const firstName = user?.name?.split(' ')[0] || 'Usuario';
   const userInitial = firstName.charAt(0).toUpperCase();
@@ -111,15 +134,22 @@ export default function PerfilPage() {
                 Cancelar
               </button>
               <button
-                onClick={handleSave}
-                className="flex items-center gap-1 px-4 py-2 text-sm text-white bg-button-green hover:bg-accent-green-dark rounded-xl transition-colors font-medium shadow-md shadow-button-green/25"
+                onClick={() => void handleSave()}
+                disabled={isSaving}
+                className="flex items-center gap-1 px-4 py-2 text-sm text-white bg-button-green hover:bg-accent-green-dark rounded-xl transition-colors font-medium shadow-md shadow-button-green/25 disabled:opacity-60"
               >
                 <Check size={16} />
-                Guardar
+                {isSaving ? 'Guardando…' : 'Guardar'}
               </button>
             </div>
           )}
         </div>
+
+        {saveError && (
+          <div className="mx-5 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+            {saveError}
+          </div>
+        )}
 
         {saved && (
           <div className="mx-5 mt-4 p-3 bg-primary-lightest/50 border border-primary/30 rounded-xl text-sm text-accent-green-dark flex items-center gap-2">

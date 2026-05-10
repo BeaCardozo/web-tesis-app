@@ -318,24 +318,24 @@ export default function UsersPage() {
   const [modalError, setModalError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Cargar usuarios
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const data = await adminUsersApi.list();
-      setUsers(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const data = await adminUsersApi.list();
+        setUsers(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     fetchUsers();
-  }, []);
+  }, [reloadToken]);
 
   // Filtrar usuarios
   const filteredUsers = useMemo(() => {
@@ -476,11 +476,20 @@ export default function UsersPage() {
 
       {/* Error general */}
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">
-            <X size={16} />
-          </button>
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex flex-wrap items-center justify-between gap-2">
+          <span className="min-w-0 break-words flex-1">{error}</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setReloadToken((t) => t + 1)}
+              className="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 font-medium hover:bg-red-100/50 transition-colors"
+            >
+              Reintentar
+            </button>
+            <button type="button" onClick={() => setError('')} className="text-red-400 hover:text-red-600 p-1" aria-label="Cerrar aviso">
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 

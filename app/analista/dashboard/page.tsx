@@ -107,9 +107,12 @@ export default function AnalistaDashboardPage() {
   const [dashboard, setDashboard] = useState<AnalystDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const data = await analystApi.dashboard();
         setDashboard(data);
@@ -120,7 +123,7 @@ export default function AnalistaDashboardPage() {
       }
     };
     load();
-  }, []);
+  }, [reloadToken]);
 
   if (loading) {
     return (
@@ -132,9 +135,16 @@ export default function AnalistaDashboardPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-red-500 gap-3">
+      <div className="flex flex-col items-center justify-center h-64 text-red-500 gap-4">
         <AlertTriangle size={40} />
-        <p className="text-lg font-medium">{error}</p>
+        <p className="text-lg font-medium text-center max-w-md">{error}</p>
+        <button
+          type="button"
+          onClick={() => setReloadToken((t) => t + 1)}
+          className="px-4 py-2 rounded-xl bg-white border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
