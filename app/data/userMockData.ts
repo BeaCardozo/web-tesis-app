@@ -632,12 +632,10 @@ export function formatTimeAgo(isoDate: string): string {
   return `hace ${diffDays} dias`;
 }
 
-// Tasa de cambio mock USD -> Bs
-export const EXCHANGE_RATE = 36.50;
-
-export function formatPrice(price: number, currency: 'USD' | 'Bs'): string {
+/** Formato de precio; `rateUsdToBs` debe venir de `useFx().rateUsdToBs` (ca-api `/meta/fx/current`). */
+export function formatPrice(price: number, currency: 'USD' | 'Bs', rateUsdToBs: number): string {
   if (currency === 'Bs') {
-    return `Bs. ${(price * EXCHANGE_RATE).toFixed(2)}`;
+    return `Bs. ${(price * rateUsdToBs).toFixed(2)}`;
   }
   return `$${price.toFixed(2)}`;
 }

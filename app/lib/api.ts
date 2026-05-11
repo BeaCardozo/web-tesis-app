@@ -859,12 +859,26 @@ export interface ApiCartDetail {
   items: ApiCartItem[];
 }
 
+export interface ApiCompareFxRate {
+  rate: number;
+  observedAt: string | null;
+  source: string | null;
+  effectiveCalendarDate: string | null;
+  fromOltp: boolean;
+}
+
 export interface ApiCompareLine {
   productId: string;
   productName: string;
   quantity: number;
+  /** Precio del pack en USD para ese supermercado. `unit × quantity = lineTotal`. */
   bestUnitPriceUsd: number | null;
+  bestUnitPriceBs?: number | null;
+  /** Precio por unidad base (ej. USD/kg) para comparación normalizada. */
+  pricePerUnitUsd?: number | null;
+  pricePerUnitBs?: number | null;
   lineTotalUsd: number | null;
+  lineTotalBs?: number | null;
   available: boolean;
 }
 
@@ -875,6 +889,7 @@ export interface ApiCompareSupermarket {
   slug: string | null;
   allProductsAvailable: boolean;
   totalUsd: number;
+  totalBs?: number;
   lines: ApiCompareLine[];
 }
 
@@ -886,6 +901,7 @@ export interface ApiCompareSingleResult {
   cheapest: ApiCompareSupermarket | null;
   note: string;
   pricesAsOf: string;
+  fxRate: ApiCompareFxRate;
 }
 
 export interface ApiMixedLine {
@@ -895,8 +911,14 @@ export interface ApiMixedLine {
   bestOffer: {
     supermarketName: string;
     storeName: string | null;
+    /** Precio del pack en USD. `unitPriceUsd × quantity = lineTotalUsd`. */
     unitPriceUsd: number;
+    unitPriceBs?: number;
+    /** Precio por unidad base (USD/kg, USD/L, etc.). */
+    pricePerUnitUsd?: number | null;
+    pricePerUnitBs?: number | null;
     lineTotalUsd: number;
+    lineTotalBs?: number;
   } | null;
 }
 
@@ -906,11 +928,18 @@ export interface ApiMixedSupermarket {
     productId: string;
     productName: string;
     quantity: number;
+    /** Precio del pack en USD. */
     unitPriceUsd: number;
+    unitPriceBs?: number;
+    /** Precio por unidad base (USD/kg, USD/L, etc.). */
+    pricePerUnitUsd?: number | null;
+    pricePerUnitBs?: number | null;
     lineTotalUsd: number;
+    lineTotalBs?: number;
     storeName: string | null;
   }[];
   subtotalUsd: number;
+  subtotalBs?: number;
 }
 
 export interface ApiCompareMixedResult {
@@ -920,8 +949,10 @@ export interface ApiCompareMixedResult {
   lines: ApiMixedLine[];
   bySupermarket: ApiMixedSupermarket[];
   grandTotalUsd: number;
+  grandTotalBs?: number;
   note: string;
   pricesAsOf: string;
+  fxRate: ApiCompareFxRate;
 }
 
 export type ApiCompareResult = ApiCompareSingleResult | ApiCompareMixedResult;
@@ -987,7 +1018,7 @@ export const cartsApi = {
     const res = await authFetch(`${API_BASE_URL}/carts/${cartId}/compare?mode=${mode}`);
     if (!res.ok) {
       const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al comparar precios');
+      throw new Error(parseApiErrorMessage(error, 'Error al comparar precios'));
     }
     const json: ApiResponse<ApiCompareResult> = await res.json();
     return json.data;
@@ -1104,6 +1135,16 @@ export const offersApi = {
 // ============================================
 // METADATOS DWH (FX, frescura de scrape)
 // ============================================
+
+/** Respuesta GET `/meta/fx/current` (ca-api; origen OLTP o DWH vía scraper). */
+export interface ApiFxCurrent {
+  fx_usd_to_bs: number;
+  fx_observed_at: string | null;
+  fx_source: string | null;
+  effective_calendar_date: string | null;
+  from_oltp?: boolean | null;
+}
+
 export const metaApi = {
   async fxCurrent(): Promise<Record<string, unknown> | null> {
     const res = await fetch(`${API_BASE_URL}/meta/fx/current`);

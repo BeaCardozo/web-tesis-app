@@ -24,7 +24,8 @@ import {
   ApiCompareSingleResult,
   ApiCompareMixedResult,
 } from '../../lib/api';
-import { EXCHANGE_RATE } from '../../data/userMockData';
+import { formatTimeAgo } from '../../data/userMockData';
+import { useFx } from '../../context/FxContext';
 
 export default function CarritoPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function CarritoPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingCart, setIsLoadingCart] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
+  const [comparisonError, setComparisonError] = useState('');
   const [error, setError] = useState('');
 
   // UI
@@ -52,12 +54,9 @@ export default function CarritoPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [compareVersion, setCompareVersion] = useState(0);
 
-  const cartItems = activeCart?.items || [];
+  const { rateUsdToBs, isStale, lastFetchedAt } = useFx();
 
-  const formatCurrency = (usd: number) => {
-    if (currency === 'Bs') return `Bs. ${(usd * EXCHANGE_RATE).toFixed(2)}`;
-    return `$${usd.toFixed(2)}`;
-  };
+  const cartItems = activeCart?.items || [];
 
   // ---- Data fetching ----
 
@@ -88,12 +87,13 @@ export default function CarritoPage() {
   const fetchComparison = useCallback(async (cartId: string, mode: 'single' | 'mixed') => {
     setIsComparing(true);
     setComparison(null);
+    setComparisonError('');
     try {
       const data = await cartsApi.compare(cartId, mode);
       setComparison(data);
-    } catch {
-      // Comparison may fail if no DWH data — that's OK
+    } catch (err: unknown) {
       setComparison(null);
+      setComparisonError(err instanceof Error ? err.message : 'Error al comparar precios');
     } finally {
       setIsComparing(false);
     }
@@ -118,14 +118,31 @@ export default function CarritoPage() {
     fetchCart(activeCartId);
   }, [activeCartId, fetchCart]);
 
+  // Evita mostrar comparación de otro carrito al cambiar de selector (mismo nº de ítems no re-disparaba el efecto).
+  useEffect(() => {
+    setComparison(null);
+    setComparisonError('');
+  }, [activeCartId]);
+
   // Fetch comparison when cart loads, mode changes, or quantities change
   useEffect(() => {
     if (!activeCartId || !activeCart || activeCart.items.length === 0) {
       setComparison(null);
+      setComparisonError('');
+      return;
+    }
+    if (activeCart.id !== activeCartId) {
       return;
     }
     fetchComparison(activeCartId, comparisonMode);
-  }, [activeCartId, activeCart?.items.length, comparisonMode, compareVersion, fetchComparison]);
+  }, [
+    activeCartId,
+    activeCart?.id,
+    activeCart?.items.length,
+    comparisonMode,
+    compareVersion,
+    fetchComparison,
+  ]);
 
   // ---- Mutations ----
 
@@ -209,6 +226,22 @@ export default function CarritoPage() {
   const singleData = comparison?.mode === 'single' ? comparison as ApiCompareSingleResult : null;
   const mixedData = comparison?.mode === 'mixed' ? comparison as ApiCompareMixedResult : null;
 
+  const compareFxRate =
+    comparison && 'fxRate' in comparison && comparison.fxRate && comparison.fxRate.rate > 0
+      ? comparison.fxRate.rate
+      : null;
+
+  const formatCurrency = (usd: number, bsPrecalc?: number | null) => {
+    if (currency === 'Bs') {
+      if (bsPrecalc != null && Number.isFinite(bsPrecalc)) {
+        return `Bs. ${bsPrecalc.toFixed(2)}`;
+      }
+      const r = compareFxRate ?? rateUsdToBs;
+      return `Bs. ${(usd * r).toFixed(2)}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto flex items-center justify-center py-20">
@@ -250,6 +283,15 @@ export default function CarritoPage() {
             </button>
           </div>
         </div>
+        {currency === 'Bs' && (
+          <p className="text-xs text-gray-400 mt-1 text-right sm:text-left max-w-md">
+            Tasa referencia ~{rateUsdToBs.toFixed(2)} Bs/USD
+            {isStale ? ' · puede estar desactualizada' : ''}
+            {lastFetchedAt != null
+              ? ` · ${formatTimeAgo(new Date(lastFetchedAt).toISOString())}`
+              : ''}
+          </p>
+        )}
       </div>
 
       {/* Error */}
@@ -505,7 +547,7 @@ export default function CarritoPage() {
                             <p className={`text-xl font-bold ${
                               isCheapest && sm.allProductsAvailable ? 'text-green-600' : 'text-gray-800'
                             }`}>
-                              {formatCurrency(sm.totalUsd)}
+                              {formatCurrency(sm.totalUsd, sm.totalBs)}
                             </p>
                             {isCheapest && sm.allProductsAvailable && (
                               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
@@ -527,7 +569,9 @@ export default function CarritoPage() {
                                 {line.productName} x{line.quantity}
                               </span>
                               <span className="text-gray-800 font-medium">
-                                {line.lineTotalUsd != null ? formatCurrency(line.lineTotalUsd) : 'N/D'}
+                                {line.lineTotalUsd != null
+                                  ? formatCurrency(line.lineTotalUsd, line.lineTotalBs)
+                                  : 'N/D'}
                               </span>
                             </div>
                           ))}
@@ -551,7 +595,7 @@ export default function CarritoPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(mixedData.grandTotalUsd)}
+                      {formatCurrency(mixedData.grandTotalUsd, mixedData.grandTotalBs)}
                     </p>
                     <span className="text-xs text-green-600 font-medium">Total optimizado</span>
                   </div>
@@ -573,7 +617,7 @@ export default function CarritoPage() {
                         </div>
                       </div>
                       <p className="text-lg font-bold text-gray-800">
-                        {formatCurrency(sm.subtotalUsd)}
+                        {formatCurrency(sm.subtotalUsd, sm.subtotalBs)}
                       </p>
                     </div>
                     <div className="divide-y divide-gray-50">
@@ -586,12 +630,12 @@ export default function CarritoPage() {
                             <div className="min-w-0">
                               <p className="text-sm text-gray-700 line-clamp-1">{p.productName}</p>
                               <p className="text-xs text-gray-400">
-                                {formatCurrency(p.unitPriceUsd)} x {p.quantity}
+                                {formatCurrency(p.unitPriceUsd, p.unitPriceBs)} x {p.quantity}
                               </p>
                             </div>
                           </div>
                           <p className="font-medium text-gray-800 text-sm flex-shrink-0 ml-3">
-                            {formatCurrency(p.lineTotalUsd)}
+                            {formatCurrency(p.lineTotalUsd, p.lineTotalBs)}
                           </p>
                         </div>
                       ))}
@@ -618,8 +662,14 @@ export default function CarritoPage() {
               <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
                 <AlertCircle size={36} className="text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">
-                  No se pudieron obtener datos de precios para la comparacion.
+                  {comparisonError ||
+                    'No se pudieron obtener datos de precios para la comparacion.'}
                 </p>
+                {comparisonError && (
+                  <p className="text-xs text-gray-400 mt-2 max-w-md mx-auto">
+                    Si en el DWH sí hay precios, revisa la consola de red (GET compare), la URL de la API y que el token sea válido.
+                  </p>
+                )}
                 <button
                   onClick={() => fetchComparison(activeCartId, comparisonMode)}
                   className="mt-3 px-4 py-2 text-sm text-button-green hover:text-accent-green-dark font-medium"

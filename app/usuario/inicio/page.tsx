@@ -21,12 +21,13 @@ import {
   ApiCategory,
 } from '../../lib/api';
 import { getCategoryIcon } from '../../lib/categoryIcons';
-import { EXCHANGE_RATE } from '../../data/userMockData';
 import { useAuth } from '../../context/AuthContext';
+import { useFx } from '../../context/FxContext';
 
 export default function InicioPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { rateUsdToBs } = useFx();
   const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -110,7 +111,7 @@ export default function InicioPage() {
   }, [categories]);
 
   const formatCurrency = (usd: number) => {
-    if (currency === 'Bs') return `Bs. ${(usd * EXCHANGE_RATE).toFixed(2)}`;
+    if (currency === 'Bs') return `Bs. ${(usd * rateUsdToBs).toFixed(2)}`;
     return `$${usd.toFixed(2)}`;
   };
 
@@ -335,7 +336,7 @@ export default function InicioPage() {
                             <p className="text-lg font-bold text-button-green">
                               {currency === 'USD'
                                 ? `$${cheapestUsd.toFixed(2)}`
-                                : `Bs. ${(cheapestBs ?? cheapestUsd * EXCHANGE_RATE).toFixed(2)}`}
+                                : `Bs. ${(cheapestBs ?? cheapestUsd * rateUsdToBs).toFixed(2)}`}
                             </p>
                           </>
                         ) : (

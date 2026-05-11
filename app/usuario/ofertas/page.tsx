@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tag, Package, Loader2, DollarSign, ShoppingCart, TrendingDown } from 'lucide-react';
 import { offersApi, ApiDeal } from '../../lib/api';
-import { EXCHANGE_RATE } from '../../data/userMockData';
+import { useFx } from '../../context/FxContext';
 
 export default function OfertasPage() {
   const router = useRouter();
+  const { rateUsdToBs } = useFx();
   const [deals, setDeals] = useState<ApiDeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -169,7 +170,7 @@ export default function OfertasPage() {
                     </p>
                     {deal.originalPriceUsd && deal.originalPriceUsd > deal.priceUsd && (
                       <p className="text-sm text-gray-400 line-through">
-                        {formatPriceVal(deal.originalPriceUsd, deal.originalPriceBs ?? deal.originalPriceUsd * EXCHANGE_RATE)}
+                        {formatPriceVal(deal.originalPriceUsd, deal.originalPriceBs ?? deal.originalPriceUsd * rateUsdToBs)}
                       </p>
                     )}
                   </div>

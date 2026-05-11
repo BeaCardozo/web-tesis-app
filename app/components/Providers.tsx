@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { AuthProvider } from '../context/AuthContext';
+import { FxProvider } from '../context/FxContext';
 import { SidebarProvider } from '../context/SidebarContext';
 
 interface ProvidersProps {
@@ -11,9 +12,11 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <AuthProvider>
-      <SidebarProvider>
-        {children}
-      </SidebarProvider>
+      <FxProvider>
+        <SidebarProvider>
+          {children}
+        </SidebarProvider>
+      </FxProvider>
     </AuthProvider>
   );
 }

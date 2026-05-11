@@ -19,8 +19,8 @@ import {
   ApiProduct,
   ApiCategory,
 } from '../../lib/api';
-import { formatPrice, EXCHANGE_RATE } from '../../data/userMockData';
 import { Pagination } from '../../components/Pagination';
+import { useFx } from '../../context/FxContext';
 import { usePagination } from '../../hooks/usePagination';
 
 type SortOption = 'nameAsc' | 'nameDesc' | 'priceAsc' | 'priceDesc';
@@ -50,6 +50,7 @@ export default function ProductosPage() {
 function ProductosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { rateUsdToBs } = useFx();
 
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -307,7 +308,7 @@ function ProductosContent() {
                             <p className="text-lg font-bold text-button-green">
                               {currency === 'USD'
                                 ? `$${cheapestUsd.toFixed(2)}`
-                                : `Bs. ${(cheapestBs ?? cheapestUsd * EXCHANGE_RATE).toFixed(2)}`}
+                                : `Bs. ${(cheapestBs ?? cheapestUsd * rateUsdToBs).toFixed(2)}`}
                             </p>
                           </>
                         ) : (

@@ -22,7 +22,8 @@ import {
   ApiSupermarketPrice,
   ApiCart,
 } from '../../../lib/api';
-import { EXCHANGE_RATE, formatTimeAgo } from '../../../data/userMockData';
+import { formatTimeAgo } from '../../../data/userMockData';
+import { useFx } from '../../../context/FxContext';
 
 type PriceSortOption = 'priceAsc' | 'priceDesc' | 'nameAsc' | 'recent';
 
@@ -55,6 +56,7 @@ function normalizePrices(pricesBySupermarket: Record<string, ApiSupermarketPrice
 export default function ProductoDetallePage() {
   const router = useRouter();
   const params = useParams();
+  const { rateUsdToBs } = useFx();
   const productId = params.id as string;
 
   const [product, setProduct] = useState<ApiProductDetail | null>(null);
@@ -121,7 +123,7 @@ export default function ProductoDetallePage() {
   }, [lowest, highest]);
 
   const formatCurrency = (usd: number, bs?: number) => {
-    if (currency === 'Bs') return `Bs. ${(bs ?? usd * EXCHANGE_RATE).toFixed(2)}`;
+    if (currency === 'Bs') return `Bs. ${(bs ?? usd * rateUsdToBs).toFixed(2)}`;
     return `$${usd.toFixed(2)}`;
   };
 
