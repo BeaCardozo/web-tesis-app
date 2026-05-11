@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
   Search,
-  Filter,
   LogIn,
   LogOut,
   UserPlus,
@@ -15,13 +14,18 @@ import {
   Shield,
   Store,
   Clock,
-  User,
-  Activity
+  Activity,
+  RefreshCw,
 } from 'lucide-react';
-import { auditLogs, AuditLog, AuditAction } from '../../data/mockData';
+import { AuditLog, AuditAction } from '../../data/mockData';
 import { Pagination } from '../../components/Pagination';
-import { MockDataBanner } from '../../components/MockDataBanner';
 import { usePagination } from '../../hooks/usePagination';
+import { adminAuditApi } from '../../lib/api';
+import {
+  mapAuditEventToAuditLog,
+  statsToDashboardCards,
+  type AuditDashboardCardStats,
+} from '../../lib/audit-mapper';
 
 // ============================================
 // CONFIGURACIÓN DE ACCIONES
@@ -29,6 +33,7 @@ import { usePagination } from '../../hooks/usePagination';
 const actionConfig: Record<AuditAction, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
   user_login: { label: 'Inicio de sesión', icon: LogIn, color: 'text-green-600', bgColor: 'bg-green-100' },
   user_logout: { label: 'Cierre de sesión', icon: LogOut, color: 'text-gray-600', bgColor: 'bg-gray-100' },
+  auth_refresh: { label: 'Sesión renovada', icon: RefreshCw, color: 'text-teal-600', bgColor: 'bg-teal-100' },
   user_created: { label: 'Usuario creado', icon: UserPlus, color: 'text-blue-600', bgColor: 'bg-blue-100' },
   user_updated: { label: 'Usuario actualizado', icon: Edit2, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
   user_deleted: { label: 'Usuario eliminado', icon: UserMinus, color: 'text-red-600', bgColor: 'bg-red-100' },
@@ -40,11 +45,12 @@ const actionConfig: Record<AuditAction, { label: string; icon: React.ElementType
   data_deleted: { label: 'Datos eliminados', icon: Trash2, color: 'text-red-600', bgColor: 'bg-red-100' },
   password_changed: { label: 'Contraseña cambiada', icon: Key, color: 'text-blue-600', bgColor: 'bg-blue-100' },
   role_changed: { label: 'Rol cambiado', icon: Shield, color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
+  system_event: { label: 'Otro evento', icon: Activity, color: 'text-gray-600', bgColor: 'bg-gray-100' },
 };
 
 const actionCategories = [
   { value: 'all', label: 'Todas las acciones' },
-  { value: 'auth', label: 'Autenticación', actions: ['user_login', 'user_logout'] },
+  { value: 'auth', label: 'Autenticación', actions: ['user_login', 'user_logout', 'auth_refresh'] },
   { value: 'users', label: 'Usuarios', actions: ['user_created', 'user_updated', 'user_deleted', 'user_status_changed', 'role_changed', 'password_changed'] },
   { value: 'supermarkets', label: 'Supermercados', actions: ['supermarket_created', 'supermarket_updated', 'supermarket_deleted'] },
   { value: 'data', label: 'Datos', actions: ['data_uploaded', 'data_deleted'] },
@@ -53,11 +59,46 @@ const actionCategories = [
 // ============================================
 // PÁGINA DE AUDITORÍA
 // ============================================
+const emptyCards: AuditDashboardCardStats = {
+  logins: 0,
+  usersCreated: 0,
+  dataLoads: 0,
+  total: 0,
+};
+
 export default function AuditPage() {
-  const [logs, setLogs] = useState<AuditLog[]>(auditLogs);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [cardStats, setCardStats] = useState<AuditDashboardCardStats>(emptyCards);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const data = await adminAuditApi.getEvents({ limit: 500 });
+        if (cancelled) return;
+        setCardStats(statsToDashboardCards(data.stats));
+        setLogs(data.events.map(mapAuditEventToAuditLog));
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError((e as Error).message ?? 'No se pudo cargar la auditoría');
+          setLogs([]);
+          setCardStats(emptyCards);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Filtrar logs
   const filteredLogs = logs.filter(log => {
@@ -118,9 +159,13 @@ export default function AuditPage() {
         <p className="text-gray-500">Historial de actividades y acciones en la plataforma</p>
       </div>
 
-      <MockDataBanner />
+      {loadError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {loadError}
+        </div>
+      )}
 
-      {/* Estadísticas rápidas */}
+      {/* Estadísticas rápidas (totales desde API / ventana de tiempo) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
@@ -129,7 +174,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-800">
-                {logs.filter(l => l.action === 'user_login').length}
+                {loading ? '…' : cardStats.logins}
               </p>
               <p className="text-xs text-gray-500">Inicios de sesión</p>
             </div>
@@ -142,7 +187,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-800">
-                {logs.filter(l => l.action === 'user_created').length}
+                {loading ? '…' : cardStats.usersCreated}
               </p>
               <p className="text-xs text-gray-500">Usuarios creados</p>
             </div>
@@ -155,7 +200,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-800">
-                {logs.filter(l => l.action === 'data_uploaded').length}
+                {loading ? '…' : cardStats.dataLoads}
               </p>
               <p className="text-xs text-gray-500">Cargas de datos</p>
             </div>
@@ -167,7 +212,7 @@ export default function AuditPage() {
               <Activity size={20} className="text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-800">{logs.length}</p>
+              <p className="text-2xl font-bold text-gray-800">{loading ? '…' : cardStats.total}</p>
               <p className="text-xs text-gray-500">Total de eventos</p>
             </div>
           </div>

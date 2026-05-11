@@ -408,6 +408,46 @@ export const adminStatsApi = {
   },
 };
 
+/** Respuesta de GET /admin/audit/events (Postgres). */
+export interface ApiAuditEvent {
+  eventId: string;
+  timestamp: string;
+  source: string;
+  type: string;
+  actor?: { kind: string; id?: string; name?: string };
+  resource?: { kind: string; id?: string };
+  context?: {
+    ip?: string;
+    userAgent?: string;
+    dagId?: string;
+    runId?: string;
+    logicalDate?: string;
+  };
+  payload?: Record<string, unknown>;
+}
+
+export interface AuditEventsQueryPayload {
+  events: ApiAuditEvent[];
+  stats: { total: number; byType: Record<string, number> };
+}
+
+export const adminAuditApi = {
+  async getEvents(params?: { since?: string; limit?: number }): Promise<AuditEventsQueryPayload> {
+    const q = new URLSearchParams();
+    if (params?.since) q.set('since', params.since);
+    if (params?.limit != null) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    const url = `${API_BASE_URL}/admin/audit/events${qs ? `?${qs}` : ''}`;
+    const res = await authFetch(url);
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar auditoría'));
+    }
+    const json: ApiResponse<AuditEventsQueryPayload> = await res.json();
+    return json.data;
+  },
+};
+
 // ============================================
 // TIPOS DE CATÁLOGO
 // ============================================

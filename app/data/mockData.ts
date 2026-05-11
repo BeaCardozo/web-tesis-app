@@ -459,6 +459,7 @@ export const priceTrend: Record<string, { day: string; avgPrice: number }[]> = {
 export type AuditAction =
   | 'user_login'
   | 'user_logout'
+  | 'auth_refresh'
   | 'user_created'
   | 'user_updated'
   | 'user_deleted'
@@ -469,7 +470,8 @@ export type AuditAction =
   | 'data_uploaded'
   | 'data_deleted'
   | 'password_changed'
-  | 'role_changed';
+  | 'role_changed'
+  | 'system_event';
 
 export interface AuditLog {
   id: string;
