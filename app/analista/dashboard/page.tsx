@@ -354,7 +354,7 @@ export default function AnalistaDashboardPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-gray-600 text-sm">
-                          {product.brand || '—'}
+                          {product.brand?.name ?? '—'}
                         </td>
                         <td className="py-3 px-4 text-gray-600 text-sm">
                           {product.unit}

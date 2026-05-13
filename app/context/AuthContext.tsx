@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '../data/mockData';
-import { authApi, BackendUser, clearTokens } from '../lib/api';
+import { authApi, BackendUser, clearTokens, getMeForRestore, tryRefreshAccessToken } from '../lib/api';
 
 // ============================================
 // MAPEO DE ROLES BACKEND → FRONTEND
@@ -58,26 +58,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) {
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (!accessToken && !refreshToken) {
         setIsLoading(false);
         return;
       }
 
-      try {
-        const backendUser = await authApi.getMe();
-        const mappedUser = mapBackendUser(backendUser);
+      if (!accessToken && refreshToken) {
+        await tryRefreshAccessToken();
+      }
+
+      const me = await getMeForRestore();
+      if (me.ok) {
+        const mappedUser = mapBackendUser(me.user);
         setUser(mappedUser);
         localStorage.setItem('currentUser', JSON.stringify(mappedUser));
-      } catch {
-        // Token inválido o expirado, limpiar sesión
+      } else if (me.reason === 'unauthorized') {
         clearTokens();
         localStorage.removeItem('currentUser');
       }
+      // `network`: conservar tokens; el usuario puede reintentar al navegar
 
       setIsLoading(false);
     };
 
-    restoreSession();
+    void restoreSession();
   }, []);
 
   // ============================================
@@ -87,13 +93,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      // 1. Obtener tokens del backend
       await authApi.login(email, password);
 
-      // 2. Obtener perfil del usuario con su rol
-      const backendUser = await authApi.getMe();
-      const mappedUser = mapBackendUser(backendUser);
+      const me = await getMeForRestore();
+      if (!me.ok) {
+        if (me.reason === 'unauthorized') {
+          clearTokens();
+          localStorage.removeItem('currentUser');
+        }
+        setIsLoading(false);
+        const message =
+          me.reason === 'network'
+            ? 'No se pudo cargar tu perfil. Revisa la conexión e inténtalo de nuevo.'
+            : 'No se pudo obtener el perfil del usuario';
+        return { success: false, error: message };
+      }
 
+      const mappedUser = mapBackendUser(me.user);
       setUser(mappedUser);
       localStorage.setItem('currentUser', JSON.stringify(mappedUser));
       setIsLoading(false);
@@ -116,9 +132,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) return;
-    const backendUser = await authApi.getMe();
-    const mappedUser = mapBackendUser(backendUser);
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!accessToken && refreshToken) {
+      await tryRefreshAccessToken();
+    }
+    if (!localStorage.getItem('accessToken')) return;
+
+    const me = await getMeForRestore();
+    if (!me.ok) {
+      if (me.reason === 'unauthorized') {
+        clearTokens();
+        localStorage.removeItem('currentUser');
+        setUser(null);
+      }
+      return;
+    }
+    const mappedUser = mapBackendUser(me.user);
     setUser(mappedUser);
     localStorage.setItem('currentUser', JSON.stringify(mappedUser));
   };

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   ShoppingBag,
   Store,
-  TrendingUp,
   Tag,
   ShoppingCart,
   ArrowUpRight,
@@ -13,6 +12,8 @@ import {
   UserCheck,
   UserX,
   Package,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { adminStatsApi, DashboardStats, BackendRole } from '../../lib/api';
 
@@ -64,6 +65,65 @@ function HorizontalBarChart({ data, maxValue, unit }: {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+const CHART_PAGE_SIZE = 10;
+
+function PaginatedHorizontalBarChart({
+  data,
+  maxValue,
+  unit,
+}: {
+  data: { label: string; value: number; color?: string }[];
+  maxValue?: number;
+  unit?: string;
+}) {
+  const [page, setPage] = useState(0);
+  const globalMax = maxValue ?? Math.max(...data.map((d) => d.value), 1);
+  const totalPages = Math.max(1, Math.ceil(data.length / CHART_PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(0);
+  }, [data]);
+
+  const effectivePage = Math.min(page, totalPages - 1);
+  const start = effectivePage * CHART_PAGE_SIZE;
+  const pageData = useMemo(
+    () => data.slice(start, start + CHART_PAGE_SIZE),
+    [data, start],
+  );
+
+  return (
+    <div>
+      <HorizontalBarChart data={pageData} maxValue={globalMax} unit={unit} />
+      {data.length > CHART_PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={effectivePage <= 0}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          >
+            <ChevronLeft size={18} />
+            Anterior
+          </button>
+          <span className="text-sm text-gray-500 tabular-nums">
+            {start + 1}–{Math.min(start + CHART_PAGE_SIZE, data.length)} de {data.length} · Página{' '}
+            {effectivePage + 1}/{totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={effectivePage >= totalPages - 1}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          >
+            Siguiente
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -212,6 +272,16 @@ export default function DashboardPage() {
     fetchStats();
   }, [reloadToken]);
 
+  const categoryChartData = useMemo(() => {
+    if (!stats) return [];
+    return stats.productsByCategory.map((d) => ({ label: d.name, value: d.count }));
+  }, [stats]);
+
+  const brandChartData = useMemo(() => {
+    if (!stats) return [];
+    return stats.productsByBrand.map((d) => ({ label: d.name, value: d.count }));
+  }, [stats]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -243,15 +313,9 @@ export default function DashboardPage() {
     value: d.count,
   }));
 
-  const categoryChartData = stats.productsByCategory.map(d => ({
-    label: d.name,
-    value: d.count,
-  }));
-
-  const brandChartData = stats.productsByBrand.map(d => ({
-    label: d.name,
-    value: d.count,
-  }));
+  const categoryMax =
+    categoryChartData.length > 0 ? Math.max(...categoryChartData.map((d) => d.value), 1) : 1;
+  const brandMax = brandChartData.length > 0 ? Math.max(...brandChartData.map((d) => d.value), 1) : 1;
 
   const roleDonutData = stats.usersByRole.map((r) => ({
     label: ROLE_LABELS[r.role] || r.role,
@@ -351,14 +415,22 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Productos por categoría */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4">Productos por Categoria</h3>
-          <HorizontalBarChart data={categoryChartData} />
+          <h3 className="font-semibold text-gray-800 mb-4">Productos por categoría</h3>
+          {categoryChartData.length > 0 ? (
+            <PaginatedHorizontalBarChart data={categoryChartData} maxValue={categoryMax} />
+          ) : (
+            <p className="text-gray-400 text-center py-8">Sin datos</p>
+          )}
         </div>
 
         {/* Productos por marca */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4">Productos por Marca</h3>
-          <HorizontalBarChart data={brandChartData} />
+          <h3 className="font-semibold text-gray-800 mb-4">Productos por marca</h3>
+          {brandChartData.length > 0 ? (
+            <PaginatedHorizontalBarChart data={brandChartData} maxValue={brandMax} />
+          ) : (
+            <p className="text-gray-400 text-center py-8">Sin datos</p>
+          )}
         </div>
       </div>
 

@@ -11,12 +11,58 @@ function getRefreshToken(): string | null {
   return localStorage.getItem('refreshToken');
 }
 
+let proactiveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function decodeJwtExpMs(accessToken: string): number | null {
+  try {
+    const parts = accessToken.split('.');
+    if (parts.length < 2) return null;
+    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4;
+    if (pad) b64 += '='.repeat(4 - pad);
+    const payload = JSON.parse(atob(b64)) as { exp?: number };
+    if (typeof payload.exp !== 'number') return null;
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+}
+
+/** Programa renovación del access ~1 min antes de `exp` (JWT sin validar firma en cliente). */
+function scheduleProactiveTokenRefresh() {
+  if (typeof window === 'undefined') return;
+  if (proactiveTimer != null) {
+    clearTimeout(proactiveTimer);
+    proactiveTimer = null;
+  }
+  const access = getAccessToken();
+  const refresh = getRefreshToken();
+  if (!access || !refresh) return;
+
+  const expMs = decodeJwtExpMs(access);
+  if (expMs == null) return;
+
+  const skewMs = 60_000;
+  const delay = Math.max(10_000, expMs - Date.now() - skewMs);
+
+  proactiveTimer = setTimeout(async () => {
+    proactiveTimer = null;
+    const ok = await refreshAccessToken();
+    if (ok) scheduleProactiveTokenRefresh();
+  }, delay);
+}
+
 function setTokens(accessToken: string, refreshToken: string) {
   localStorage.setItem('accessToken', accessToken);
   localStorage.setItem('refreshToken', refreshToken);
+  scheduleProactiveTokenRefresh();
 }
 
 export function clearTokens() {
+  if (proactiveTimer != null) {
+    clearTimeout(proactiveTimer);
+    proactiveTimer = null;
+  }
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
 }
@@ -33,28 +79,45 @@ export function parseApiErrorMessage(body: unknown, fallback: string): string {
 // ============================================
 // FETCH CON AUTH Y REFRESH AUTOMÁTICO
 // ============================================
+let refreshInFlight: Promise<boolean> | null = null;
+
 async function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
+  if (refreshInFlight) return refreshInFlight;
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${refreshToken}`,
-      },
-    });
+  const p = (async (): Promise<boolean> => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
 
-    if (!res.ok) return false;
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      });
 
-    const json = await res.json();
-    const tokens = json.data ?? json;
-    setTokens(tokens.accessToken, tokens.refreshToken);
-    return true;
-  } catch {
-    return false;
-  }
+      if (!res.ok) return false;
+
+      const json = await res.json();
+      const tokens = json.data ?? json;
+      setTokens(tokens.accessToken, tokens.refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  refreshInFlight = p;
+  p.finally(() => {
+    refreshInFlight = null;
+  });
+  return p;
+}
+
+/** Una sola petición de refresh concurrente; útil desde AuthContext o timers. */
+export async function tryRefreshAccessToken(): Promise<boolean> {
+  return refreshAccessToken();
 }
 
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
@@ -116,6 +179,27 @@ export interface BackendUser {
   isActive: boolean;
 }
 
+export type GetMeForRestoreResult =
+  | { ok: true; user: BackendUser }
+  | { ok: false; reason: 'unauthorized' | 'network' };
+
+/** Perfil para restaurar sesión: distingue fallo de auth (limpiar tokens) vs red (no limpiar). */
+export async function getMeForRestore(): Promise<GetMeForRestoreResult> {
+  try {
+    const res = await authFetch(`${API_BASE_URL}/users/me`);
+    if (res.ok) {
+      const json: ApiResponse<BackendUser> = await res.json();
+      return { ok: true, user: json.data };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return { ok: false, reason: 'unauthorized' };
+    }
+    return { ok: false, reason: 'network' };
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+}
+
 // ============================================
 // ENDPOINTS DE AUTH
 // ============================================
@@ -160,14 +244,9 @@ export const authApi = {
   },
 
   async getMe(): Promise<BackendUser> {
-    const res = await authFetch(`${API_BASE_URL}/users/me`);
-
-    if (!res.ok) {
-      throw new Error('No se pudo obtener el perfil del usuario');
-    }
-
-    const json: ApiResponse<BackendUser> = await res.json();
-    return json.data;
+    const r = await getMeForRestore();
+    if (r.ok) return r.user;
+    throw new Error('No se pudo obtener el perfil del usuario');
   },
 
   async logout(): Promise<void> {
@@ -470,7 +549,7 @@ export interface ApiProduct {
   unitType: string;
   baseAmount: number;
   imageUrl: string | null;
-  brand: { id: string; name: string } | null;
+  brand: { id: string; name: string; slug?: string } | null;
   category: { id: string; name: string };
   updatedAt: string;
   priceSnapshot: PriceSnapshot | null;
@@ -753,7 +832,7 @@ export interface AnalystCatalogStats {
     unit: string;
     imageUrl: string | null;
     category: string;
-    brand: string | null;
+    brand: { id: string; name: string; slug?: string } | null;
     updatedAt: string;
   }[];
 }
@@ -772,7 +851,7 @@ export interface AnalystProduct {
   baseAmount: number;
   imageUrl: string | null;
   category: { id: string; name: string } | null;
-  brand: { id: string; name: string } | null;
+  brand: { id: string; name: string; slug?: string } | null;
   storeName: string;
   priceUsd: number;
   priceBs: number;
@@ -847,7 +926,7 @@ export interface ApiCartItem {
     unitType: string;
     baseAmount: number;
     imageUrl: string | null;
-    brand: { id: string; name: string } | null;
+    brand: { id: string; name: string; slug?: string } | null;
     category: { id: string; name: string };
   };
 }
