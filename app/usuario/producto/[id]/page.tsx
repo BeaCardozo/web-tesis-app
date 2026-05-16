@@ -23,6 +23,7 @@ import {
   ApiCart,
 } from '../../../lib/api';
 import { formatTimeAgo } from '../../../data/userMockData';
+import { ProductOfferPrice } from '../../../components/ProductOfferPrice';
 import { useFx } from '../../../context/FxContext';
 
 type PriceSortOption = 'priceAsc' | 'priceDesc' | 'nameAsc' | 'recent';
@@ -32,6 +33,10 @@ interface NormalizedPrice {
   storeName: string;
   priceUsd: number;
   priceBs: number;
+  originalPriceUsd: number | null;
+  originalPriceBs: number | null;
+  discountPct: number | null;
+  isOnSale: boolean;
   scrapedAt: string;
   isAvailable: boolean;
 }
@@ -45,6 +50,12 @@ function normalizePrices(pricesBySupermarket: Record<string, ApiSupermarketPrice
         storeName: String(r.store_name ?? ''),
         priceUsd: Number(r.price_usd ?? 0),
         priceBs: Number(r.price_bs ?? 0),
+        originalPriceUsd:
+          r.original_price_usd != null ? Number(r.original_price_usd) : null,
+        originalPriceBs:
+          r.original_price_bs != null ? Number(r.original_price_bs) : null,
+        discountPct: r.discount_pct != null ? Number(r.discount_pct) : null,
+        isOnSale: Boolean(r.is_on_sale),
         scrapedAt: String(r.scraped_at ?? ''),
         isAvailable: Boolean(r.is_available ?? true),
       });
@@ -117,10 +128,18 @@ export default function ProductoDetallePage() {
     return prices.reduce((max, p) => p.priceUsd > max.priceUsd ? p : max, prices[0]);
   }, [prices]);
 
-  const savings = useMemo(() => {
+  const crossStoreSavingsPct = useMemo(() => {
     if (!lowest || !highest || highest.priceUsd === 0) return 0;
     return Math.round(((highest.priceUsd - lowest.priceUsd) / highest.priceUsd) * 100);
   }, [lowest, highest]);
+
+  const lowestPromoPct = useMemo(() => {
+    if (!lowest?.isOnSale || !lowest.originalPriceUsd || lowest.originalPriceUsd <= lowest.priceUsd) {
+      return 0;
+    }
+    if (lowest.discountPct != null && lowest.discountPct > 0) return Math.round(lowest.discountPct);
+    return Math.round((1 - lowest.priceUsd / lowest.originalPriceUsd) * 100);
+  }, [lowest]);
 
   const formatCurrency = (usd: number, bs?: number) => {
     if (currency === 'Bs') return `Bs. ${(bs ?? usd * rateUsdToBs).toFixed(2)}`;
@@ -253,9 +272,9 @@ export default function ProductoDetallePage() {
                 />
               ) : null}
               <Package size={64} className={`text-button-green/40 ${product.imageUrl ? 'hidden' : ''}`} />
-              {savings > 0 && (
-                <div className="absolute top-3 right-3 bg-green-500 text-white text-sm font-bold px-3 py-1.5 rounded-xl">
-                  Ahorra {savings}%
+              {lowestPromoPct > 0 && (
+                <div className="absolute top-3 right-3 bg-red-500 text-white text-sm font-bold px-3 py-1.5 rounded-xl">
+                  Oferta -{lowestPromoPct}%
                 </div>
               )}
             </div>
@@ -347,9 +366,22 @@ export default function ProductoDetallePage() {
                     <TrendingDown size={18} className="text-green-600" />
                     <span className="text-sm text-gray-500">Precio mas bajo</span>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {lowest ? formatCurrency(lowest.priceUsd, lowest.priceBs) : '-'}
-                  </p>
+                  {lowest ? (
+                    <ProductOfferPrice
+                      priceUsd={lowest.priceUsd}
+                      priceBs={lowest.priceBs}
+                      originalPriceUsd={lowest.isOnSale ? lowest.originalPriceUsd : null}
+                      originalPriceBs={lowest.isOnSale ? lowest.originalPriceBs : null}
+                      discountPct={lowest.isOnSale ? lowest.discountPct : null}
+                      isOnSale={lowest.isOnSale}
+                      currency={currency}
+                      rateUsdToBs={rateUsdToBs}
+                      layout="stack"
+                      className="[&_p]:text-2xl [&_p]:text-green-600"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-green-600">-</p>
+                  )}
                   {lowest && (
                     <p className="text-xs text-gray-400 mt-1">{lowest.supermarketName}</p>
                   )}
@@ -376,8 +408,10 @@ export default function ProductoDetallePage() {
                       ? formatCurrency(highest.priceUsd - lowest.priceUsd, highest.priceBs - lowest.priceBs)
                       : '-'}
                   </p>
-                  {savings > 0 && (
-                    <p className="text-xs text-green-600 mt-1">{savings}% menos</p>
+                  {crossStoreSavingsPct > 0 && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Hasta {crossStoreSavingsPct}% menos entre tiendas
+                    </p>
                   )}
                 </div>
               </div>
@@ -435,10 +469,18 @@ export default function ProductoDetallePage() {
                             )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-lg font-bold ${isLowest ? 'text-green-600' : 'text-gray-800'}`}>
-                            {formatCurrency(price.priceUsd, price.priceBs)}
-                          </p>
+                        <div className="text-right flex flex-col items-end">
+                          <ProductOfferPrice
+                            priceUsd={price.priceUsd}
+                            priceBs={price.priceBs}
+                            originalPriceUsd={price.isOnSale ? price.originalPriceUsd : null}
+                            originalPriceBs={price.isOnSale ? price.originalPriceBs : null}
+                            discountPct={price.isOnSale ? price.discountPct : null}
+                            isOnSale={price.isOnSale}
+                            currency={currency}
+                            rateUsdToBs={rateUsdToBs}
+                            className={`justify-end ${isLowest ? '[&_p:first-of-type]:text-green-600' : ''}`}
+                          />
                           {isLowest && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                               Mas barato

@@ -551,6 +551,11 @@ export interface PriceSnapshot {
   cheapestStore: string | null;
   cheapestScrapedAt: string | null;
   cheapestAvailable: boolean | null;
+  cheapestIsOnSale?: boolean | null;
+  cheapestDiscountPct?: number | null;
+  cheapestOriginalPriceUsd?: number | null;
+  cheapestOriginalPriceBs?: number | null;
+  cheapestSupermarketSlug?: string | null;
 }
 
 export interface ApiProduct {
@@ -580,6 +585,10 @@ export interface ApiSupermarketPrice {
   price_bs?: number;
   price_per_unit_usd?: number;
   price_per_unit_bs?: number;
+  original_price_usd?: number | null;
+  original_price_bs?: number | null;
+  discount_pct?: number | null;
+  is_on_sale?: boolean | null;
   is_available?: boolean;
   scraped_at?: string;
   [key: string]: unknown;

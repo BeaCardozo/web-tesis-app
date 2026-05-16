@@ -21,6 +21,7 @@ import {
   ApiCategory,
 } from '../../lib/api';
 import { getCategoryIcon } from '../../lib/categoryIcons';
+import { ProductOfferPrice } from '../../components/ProductOfferPrice';
 import { useAuth } from '../../context/AuthContext';
 import { useFx } from '../../context/FxContext';
 
@@ -331,14 +332,30 @@ export default function InicioPage() {
                     <div className="flex items-end justify-between">
                       <div>
                         {cheapestUsd != null ? (
-                          <>
-                            <p className="text-xs text-gray-400">Desde</p>
-                            <p className="text-lg font-bold text-button-green">
-                              {currency === 'USD'
-                                ? `$${cheapestUsd.toFixed(2)}`
-                                : `Bs. ${(cheapestBs ?? cheapestUsd * rateUsdToBs).toFixed(2)}`}
-                            </p>
-                          </>
+                          <ProductOfferPrice
+                            priceUsd={cheapestUsd}
+                            priceBs={cheapestBs ?? cheapestUsd * rateUsdToBs}
+                            originalPriceUsd={
+                              product.priceSnapshot?.cheapestIsOnSale
+                                ? product.priceSnapshot.cheapestOriginalPriceUsd
+                                : null
+                            }
+                            originalPriceBs={
+                              product.priceSnapshot?.cheapestIsOnSale
+                                ? product.priceSnapshot.cheapestOriginalPriceBs
+                                : null
+                            }
+                            discountPct={
+                              product.priceSnapshot?.cheapestIsOnSale
+                                ? product.priceSnapshot.cheapestDiscountPct
+                                : null
+                            }
+                            isOnSale={product.priceSnapshot?.cheapestIsOnSale}
+                            currency={currency}
+                            rateUsdToBs={rateUsdToBs}
+                            showLabel
+                            layout="stack"
+                          />
                         ) : (
                           <p className="text-sm text-gray-400">Precio no disponible</p>
                         )}
