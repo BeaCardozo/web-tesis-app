@@ -902,7 +902,36 @@ export const analystApi = {
     const json: ApiResponse<AnalystProductsResponse> = await res.json();
     return json.data;
   },
+
+  async priceHistory(productId: string, days = 30): Promise<AnalystPriceHistory> {
+    const res = await authFetch(
+      `${API_BASE_URL}/partners/me/products/${encodeURIComponent(productId)}/price-history?days=${days}`,
+    );
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar histórico de precios'));
+    }
+    const json: ApiResponse<AnalystPriceHistory> = await res.json();
+    return json.data;
+  },
 };
+
+export interface AnalystPriceHistory {
+  productId: string;
+  productName: string;
+  ownChainSlug: string;
+  ownChainName: string;
+  competitorChains: { slug: string; name: string }[];
+  days: number;
+  series: AnalystPriceHistoryPoint[];
+}
+
+export interface AnalystPriceHistoryPoint {
+  day: string;
+  ownPrice: number | null;
+  avgCompetition: number | null;
+  perChain: Record<string, number | null>;
+}
 
 // ============================================
 // TIPOS DE CARRITO
