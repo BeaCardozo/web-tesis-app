@@ -485,6 +485,18 @@ export const adminStatsApi = {
     const json: ApiResponse<DashboardStats> = await res.json();
     return json.data;
   },
+
+  async priceHistory(productId: string, days = 30): Promise<AdminPriceHistory> {
+    const res = await authFetch(
+      `${API_BASE_URL}/admin/products/${encodeURIComponent(productId)}/price-history?days=${days}`,
+    );
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar histórico de precios'));
+    }
+    const json: ApiResponse<AdminPriceHistory> = await res.json();
+    return json.data;
+  },
 };
 
 /** Respuesta de GET /admin/audit/events (Postgres). */
@@ -921,7 +933,8 @@ export interface AnalystPriceHistory {
   productName: string;
   ownChainSlug: string;
   ownChainName: string;
-  competitorChains: { slug: string; name: string }[];
+  /** Solo el número de competidores; los nombres/slugs no se exponen al analista. */
+  competitorCount: number;
   days: number;
   series: AnalystPriceHistoryPoint[];
 }
@@ -930,7 +943,24 @@ export interface AnalystPriceHistoryPoint {
   day: string;
   ownPrice: number | null;
   avgCompetition: number | null;
+}
+
+// ============================================
+// HISTORIAL DE PRECIOS — ADMIN (todas las cadenas)
+// ============================================
+export interface AdminPriceHistory {
+  productId: string;
+  productName: string;
+  chains: { slug: string; name: string }[];
+  days: number;
+  series: AdminPriceHistoryPoint[];
+}
+
+export interface AdminPriceHistoryPoint {
+  day: string;
   perChain: Record<string, number | null>;
+  /** Promedio simple de todas las cadenas con dato ese día. */
+  avgAll: number | null;
 }
 
 // ============================================

@@ -12,6 +12,7 @@ import {
   Menu,
   Store,
   ClipboardList,
+  TrendingUp,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard size={22} /> },
   { name: 'Usuarios', href: '/admin/usuarios', icon: <Users size={22} /> },
   { name: 'Supermercados', href: '/admin/supermercados', icon: <Store size={22} /> },
+  { name: 'Historial Precios', href: '/admin/historial-precios', icon: <TrendingUp size={22} /> },
   { name: 'Auditoria', href: '/admin/auditoria', icon: <ClipboardList size={22} /> },
 ];
 

@@ -19,10 +19,12 @@ export default function AdminLayout({
     if (!isLoading) {
       if (!isAuthenticated) {
         router.push('/login');
-      } else if (user?.role !== 'Administrador') {
-        // Si no es admin, redirigir a la vista de usuario
-        router.push('/usuario');
+      } else if (user?.role === 'Analista') {
+        router.push('/analista/dashboard');
+      } else if (user?.role === 'Usuario') {
+        router.push('/usuario/inicio');
       }
+      // Si es Administrador, se queda en /admin/*
     }
   }, [isLoading, isAuthenticated, user, router]);
 

@@ -16,12 +16,15 @@ import {
   Package,
 } from 'lucide-react';
 import {
-  analystApi,
-  AnalystPriceHistory,
-  AnalystPriceHistoryPoint,
-  AnalystProduct,
+  adminStatsApi,
+  AdminPriceHistory,
+  productsApi,
+  ApiProduct,
 } from '../../lib/api';
 
+// ============================================
+// CONFIG
+// ============================================
 const RANGES = [
   { value: 7, label: '7d' },
   { value: 14, label: '14d' },
@@ -30,11 +33,16 @@ const RANGES = [
   { value: 90, label: '90d' },
 ];
 
-const OWN_COLOR = '#77A14B';
+const CHAIN_COLORS: Record<string, string> = {
+  'gama-en-linea': '#77A14B',
+  'central-madeirense': '#3B82F6',
+  plansuarez: '#F59E0B',
+};
+const FALLBACK_COLORS = ['#9333EA', '#EF4444', '#06B6D4', '#EC4899', '#8B5CF6'];
 const AVG_COLOR = '#94A3B8';
 
 // ============================================
-// HELPERS NUMÉRICOS
+// HELPERS NUMÉRICOS (igual que /analista/historial)
 // ============================================
 function niceTicks(
   min: number,
@@ -97,7 +105,7 @@ function fmt(v: number | null | undefined, decimals = 2): string {
 }
 
 // ============================================
-// STAT CARD (estilo del dashboard)
+// STAT CARD (igual al dashboard analista)
 // ============================================
 function StatCard({
   title,
@@ -122,7 +130,6 @@ function StatCard({
     danger: 'bg-red-100 text-red-700',
     neutral: 'bg-gray-100 text-gray-600',
   };
-
   const trendColor =
     trend === 'up'
       ? 'text-red-500'
@@ -147,20 +154,14 @@ function StatCard({
 }
 
 // ============================================
-// GRÁFICA MULTI-LÍNEA (genérica)
+// LINE CHART (multi-línea genérico)
 // ============================================
-export type ChartLineSeries = {
-  /** Identificador único (slug) para keys de React */
+type ChartLineSeries = {
   id: string;
-  /** Nombre que aparece en la leyenda/tooltip */
   name: string;
-  /** Color HEX de la línea */
   color: string;
-  /** Si es true, la línea es punteada (típicamente para "promedio") */
   dashed?: boolean;
-  /** Si es true, se dibuja un poco más gruesa + área debajo */
   emphasis?: boolean;
-  /** Valores por día — debe tener la misma longitud que `days` */
   values: Array<number | null>;
 };
 
@@ -168,9 +169,7 @@ function LineChart({
   days,
   series,
 }: {
-  /** Etiquetas de fecha (eje X). */
   days: string[];
-  /** Una serie por línea. Todas alineadas a `days` por índice. */
   series: ChartLineSeries[];
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -179,9 +178,7 @@ function LineChart({
 
   const allValues: number[] = [];
   for (const s of series) {
-    for (const v of s.values) {
-      if (v != null) allValues.push(v);
-    }
+    for (const v of s.values) if (v != null) allValues.push(v);
   }
   if (allValues.length === 0) return null;
 
@@ -263,14 +260,7 @@ function LineChart({
           const y = yFor(t);
           return (
             <g key={`tick-${t}`}>
-              <line
-                x1={PAD_L}
-                y1={y}
-                x2={CHART_W - PAD_R}
-                y2={y}
-                stroke="#f3f4f6"
-                strokeWidth="1"
-              />
+              <line x1={PAD_L} y1={y} x2={CHART_W - PAD_R} y2={y} stroke="#f3f4f6" strokeWidth="1" />
               <text
                 x={PAD_L - 10}
                 y={y}
@@ -321,17 +311,6 @@ function LineChart({
           />
         )}
 
-        {chainPaths
-          .filter((cp) => cp.chain.emphasis && cp.points.length > 1)
-          .map((cp) => (
-            <path
-              key={`area-${cp.chain.id}`}
-              d={`${smoothPath(cp.points)} L ${cp.points[cp.points.length - 1].x} ${CHART_H - PAD_B} L ${cp.points[0].x} ${CHART_H - PAD_B} Z`}
-              fill={cp.chain.color}
-              fillOpacity="0.08"
-            />
-          ))}
-
         {chainPaths.map((cp) => {
           if (cp.points.length < 2) return null;
           return (
@@ -354,7 +333,7 @@ function LineChart({
               key={`pt-${cp.chain.id}-${p.i}`}
               cx={p.x}
               cy={p.y}
-              r={hoverIdx === p.i ? (cp.chain.emphasis ? 5 : 4) : cp.chain.emphasis ? 4 : 3}
+              r={hoverIdx === p.i ? 5 : 3.5}
               fill="white"
               stroke={cp.chain.color}
               strokeWidth={cp.chain.emphasis ? 2 : 1.5}
@@ -370,7 +349,7 @@ function LineChart({
             left: `${(hoveredX / CHART_W) * 100}%`,
             top: 0,
             transform: 'translate(-50%, -12px) translateY(-100%)',
-            minWidth: 200,
+            minWidth: 220,
           }}
         >
           <p className="font-semibold text-gray-800 mb-2 pb-2 border-b border-gray-100">
@@ -390,14 +369,9 @@ function LineChart({
                       className="inline-block w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: s.color }}
                     />
-                    <span className={s.emphasis ? 'font-semibold text-gray-800' : ''}>
-                      {s.name}
-                    </span>
+                    {s.name}
                   </span>
-                  <span
-                    className="font-semibold"
-                    style={{ color: s.emphasis ? s.color : '#374151' }}
-                  >
+                  <span className="font-semibold" style={{ color: s.color }}>
                     {v != null ? `$${v.toFixed(2)}` : '—'}
                   </span>
                 </div>
@@ -411,23 +385,24 @@ function LineChart({
 }
 
 // ============================================
-// PÁGINA PRINCIPAL
+// PÁGINA ADMIN: HISTORIAL DE PRECIOS
 // ============================================
-export default function PriceHistoryPage() {
-  const [products, setProducts] = useState<AnalystProduct[]>([]);
+export default function AdminPriceHistoryPage() {
+  const [products, setProducts] = useState<ApiProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
 
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [history, setHistory] = useState<AnalystPriceHistory | null>(null);
+  const [history, setHistory] = useState<AdminPriceHistory | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [selectedDays, setSelectedDays] = useState(30);
+  const [hiddenChains, setHiddenChains] = useState<Set<string>>(new Set());
+  const [showAvg, setShowAvg] = useState(false);
 
-  // Dropdown del selector de producto
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -442,23 +417,18 @@ export default function PriceHistoryPage() {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [isPickerOpen]);
 
+  // Cargar lista de productos canónicos
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setLoadingProducts(true);
         setProductsError(null);
-        const res = await analystApi.products({ page: 1, limit: 100 });
+        const res = await productsApi.list({ page: 1, limit: 100 });
         if (cancelled) return;
-        const seen = new Set<string>();
-        const unique = res.items.filter((p) => {
-          if (seen.has(p.id)) return false;
-          seen.add(p.id);
-          return true;
-        });
-        setProducts(unique);
-        if (unique.length > 0 && !selectedProductId) {
-          setSelectedProductId(unique[0].id);
+        setProducts(res.items);
+        if (res.items.length > 0 && !selectedProductId) {
+          setSelectedProductId(res.items[0].id);
         }
       } catch (err) {
         if (!cancelled) {
@@ -474,6 +444,7 @@ export default function PriceHistoryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Cargar histórico
   useEffect(() => {
     if (!selectedProductId) {
       setHistory(null);
@@ -484,7 +455,7 @@ export default function PriceHistoryPage() {
       try {
         setLoadingHistory(true);
         setHistoryError(null);
-        const data = await analystApi.priceHistory(selectedProductId, selectedDays);
+        const data = await adminStatsApi.priceHistory(selectedProductId, selectedDays);
         if (!cancelled) setHistory(data);
       } catch (err) {
         if (!cancelled) {
@@ -508,63 +479,90 @@ export default function PriceHistoryPage() {
     return products.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, searchTerm]);
 
-  const series = history?.series ?? [];
+  const seriesData = history?.series ?? [];
+  const chartDays = seriesData.map((s) => s.day);
 
-  const hasCompetition = series.some((p) => p.avgCompetition != null);
+  // Color por cadena: mapping fijo + fallback
+  const colorForChain = (slug: string, idx: number): string =>
+    CHAIN_COLORS[slug] ?? FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 
-  // Series para la gráfica: solo cadena propia + promedio competencia.
-  // Por privacidad NO mostramos los precios individuales de cada competidor.
+  // Construir series para la gráfica: una por cadena + (opcional) promedio
   const chartSeries: ChartLineSeries[] = useMemo(() => {
     if (!history) return [];
-    const days = history.series.map((s) => s.day);
-    const own: ChartLineSeries = {
-      id: 'own',
-      name: history.ownChainName,
-      color: OWN_COLOR,
-      emphasis: true,
-      values: history.series.map((s) => s.ownPrice),
-    };
-    const items: ChartLineSeries[] = [own];
-    if (hasCompetition) {
-      items.push({
-        id: 'avg-comp',
-        name: 'Promedio competencia',
+    const chainsList = history.chains;
+    const out: ChartLineSeries[] = chainsList
+      .filter((c) => !hiddenChains.has(c.slug))
+      .map((c, i) => ({
+        id: c.slug,
+        name: c.name,
+        color: colorForChain(c.slug, chainsList.findIndex((cc) => cc.slug === c.slug)),
+        values: history.series.map((p) => p.perChain[c.slug] ?? null),
+      }));
+    if (showAvg) {
+      out.push({
+        id: '__avg__',
+        name: 'Promedio global',
         color: AVG_COLOR,
         dashed: true,
-        values: history.series.map((s) => s.avgCompetition),
+        values: history.series.map((p) => p.avgAll),
       });
     }
-    // Aviso: silenciamos warning del compilador de variable no usada.
-    void days;
-    return items;
-  }, [history, hasCompetition]);
+    return out;
+  }, [history, hiddenChains, showAvg]);
 
-  const chartDays = history?.series.map((s) => s.day) ?? [];
-
+  // Stats globales: tomamos el promedio entre cadenas como referencia
   const stats = useMemo(() => {
-    const ownPrices = series.map((p) => p.ownPrice).filter((v): v is number => v != null);
-    if (ownPrices.length === 0) return null;
+    if (!history || seriesData.length === 0) return null;
+    const avgValues = seriesData
+      .map((p) => p.avgAll)
+      .filter((v): v is number => v != null);
+    if (avgValues.length === 0) return null;
 
-    const firstPrice = ownPrices[0];
-    const lastPrice = ownPrices[ownPrices.length - 1];
-    const priceChange = firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
-    const avgPrice = ownPrices.reduce((a, b) => a + b, 0) / ownPrices.length;
-    const minPrice = Math.min(...ownPrices);
-    const maxPrice = Math.max(...ownPrices);
+    const firstAvg = avgValues[0];
+    const lastAvg = avgValues[avgValues.length - 1];
+    const priceChange = firstAvg > 0 ? ((lastAvg - firstAvg) / firstAvg) * 100 : 0;
 
-    let currentDiff: number | null = null;
-    for (let i = series.length - 1; i >= 0; i--) {
-      const pt = series[i];
-      if (pt.ownPrice != null && pt.avgCompetition != null && pt.avgCompetition > 0) {
-        currentDiff = ((pt.ownPrice - pt.avgCompetition) / pt.avgCompetition) * 100;
-        break;
+    // Cadena más barata en el último día
+    const lastDay = seriesData[seriesData.length - 1];
+    let cheapest: { name: string; price: number } | null = null;
+    let mostExpensive: { name: string; price: number } | null = null;
+    for (const chain of history.chains) {
+      const price = lastDay.perChain[chain.slug];
+      if (price == null) continue;
+      if (cheapest == null || price < cheapest.price) {
+        cheapest = { name: chain.name, price };
+      }
+      if (mostExpensive == null || price > mostExpensive.price) {
+        mostExpensive = { name: chain.name, price };
       }
     }
 
-    return { lastPrice, priceChange, avgPrice, minPrice, maxPrice, currentDiff };
-  }, [series]);
+    // Spread: diferencia max-min último día
+    const spread =
+      cheapest != null && mostExpensive != null && cheapest.price > 0
+        ? ((mostExpensive.price - cheapest.price) / cheapest.price) * 100
+        : null;
 
-  // hasCompetition computed más arriba con chartSeries
+    return {
+      lastAvg,
+      priceChange,
+      avgPrice: avgValues.reduce((a, b) => a + b, 0) / avgValues.length,
+      minPrice: Math.min(...avgValues),
+      maxPrice: Math.max(...avgValues),
+      cheapest,
+      mostExpensive,
+      spread,
+    };
+  }, [history, seriesData]);
+
+  const toggleChain = (slug: string) => {
+    setHiddenChains((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -573,11 +571,10 @@ export default function PriceHistoryPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Historial de Precios</h1>
           <p className="text-gray-500 mt-0.5">
-            Evolución de los precios de tus productos vs la competencia
+            Evolución comparativa de precios entre todas las cadenas
           </p>
         </div>
 
-        {/* Toolbar: combobox producto + pills rango */}
         <div className="mt-5 flex flex-wrap items-center gap-3">
           {/* Combobox de producto */}
           <div className="relative flex-1 min-w-[260px]" ref={pickerRef}>
@@ -657,7 +654,7 @@ export default function PriceHistoryPage() {
                         >
                           <span className="text-sm font-medium truncate">{p.name}</span>
                           <span className="text-xs opacity-70 flex-shrink-0">
-                            ${p.priceUsd.toFixed(2)}
+                            {p.category?.name ?? ''}
                           </span>
                         </button>
                       );
@@ -692,7 +689,6 @@ export default function PriceHistoryPage() {
         </div>
       </div>
 
-      {/* Contenido principal — todo a ancho completo */}
       {loadingHistory && (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
           <Loader2 className="animate-spin mx-auto text-gray-400" size={32} />
@@ -706,7 +702,7 @@ export default function PriceHistoryPage() {
         </div>
       )}
 
-      {!loadingHistory && !historyError && history && series.length > 0 && stats && (
+      {!loadingHistory && !historyError && history && seriesData.length > 0 && stats && (
         <>
           {/* Info del producto */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -714,19 +710,19 @@ export default function PriceHistoryPage() {
               <div className="min-w-0">
                 <h2 className="text-xl font-bold text-gray-800">{history.productName}</h2>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {selectedProduct?.category?.name ?? '—'} · {history.ownChainName}
+                  {selectedProduct?.category?.name ?? '—'} ·{' '}
+                  {history.chains.length}{' '}
+                  {history.chains.length === 1 ? 'cadena activa' : 'cadenas activas'}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold" style={{ color: OWN_COLOR }}>
-                  {fmt(stats.lastPrice)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">Precio actual</p>
+                <p className="text-3xl font-bold text-gray-800">{fmt(stats.lastAvg)}</p>
+                <p className="text-xs text-gray-400 mt-0.5">Promedio global hoy</p>
               </div>
             </div>
           </div>
 
-          {/* Stats — 4 cards estilo dashboard */}
+          {/* Stats — 4 cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               title="Variación"
@@ -737,78 +733,85 @@ export default function PriceHistoryPage() {
               trend={stats.priceChange > 0 ? 'up' : stats.priceChange < 0 ? 'down' : 'neutral'}
             />
             <StatCard
-              title="Promedio"
-              value={fmt(stats.avgPrice)}
-              subtext="tu precio"
+              title="Más barata hoy"
+              value={stats.cheapest ? fmt(stats.cheapest.price) : '—'}
+              subtext={stats.cheapest?.name ?? '—'}
               icon={DollarSign}
-              iconColor="secondary"
+              iconColor="success"
             />
             <StatCard
-              title="Rango"
-              value={`${fmt(stats.minPrice)} - ${fmt(stats.maxPrice)}`}
-              subtext="mín - máx"
-              icon={BarChart3}
-              iconColor="neutral"
+              title="Más cara hoy"
+              value={stats.mostExpensive ? fmt(stats.mostExpensive.price) : '—'}
+              subtext={stats.mostExpensive?.name ?? '—'}
+              icon={DollarSign}
+              iconColor="danger"
             />
             <StatCard
-              title="Vs Competencia"
+              title="Spread"
               value={
-                stats.currentDiff == null
+                stats.spread == null
                   ? '—'
-                  : `${stats.currentDiff >= 0 ? '+' : ''}${stats.currentDiff.toFixed(1)}%`
+                  : `+${stats.spread.toFixed(1)}%`
               }
-              subtext="diferencia actual"
+              subtext="caro vs barato"
               icon={
-                stats.currentDiff == null
+                stats.spread == null
                   ? Minus
-                  : stats.currentDiff <= 0
-                    ? ArrowDownRight
-                    : ArrowUpRight
+                  : stats.spread > 0
+                    ? ArrowUpRight
+                    : ArrowDownRight
               }
-              iconColor={
-                stats.currentDiff == null
-                  ? 'neutral'
-                  : stats.currentDiff <= 0
-                    ? 'success'
-                    : 'danger'
-              }
-              trend={
-                stats.currentDiff == null
-                  ? 'neutral'
-                  : stats.currentDiff > 0
-                    ? 'up'
-                    : 'down'
-              }
+              iconColor="warning"
             />
           </div>
 
-          {/* Gráfica — ancho completo */}
+          {/* Gráfica */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-              <h3 className="font-semibold text-gray-800">Tu precio vs la competencia</h3>
+              <h3 className="font-semibold text-gray-800">Comparativa por cadena</h3>
               <p className="text-xs text-gray-400">
-                {series.length} {series.length === 1 ? 'observación' : 'observaciones'}
+                {seriesData.length} {seriesData.length === 1 ? 'observación' : 'observaciones'}
               </p>
             </div>
 
-            {/* Leyenda */}
-            <div className="flex items-center gap-4 flex-wrap mb-4">
-              <div className="flex items-center gap-2">
-                <span
-                  className="inline-block w-3 h-0.5 rounded"
-                  style={{ backgroundColor: OWN_COLOR }}
-                />
-                <span className="text-xs text-gray-600 font-medium">
-                  {history.ownChainName}
-                </span>
-              </div>
-              {hasCompetition && (
-                <div className="flex items-center gap-2">
-                  <span className="inline-block w-3 h-0 border-t-2 border-dashed border-gray-400" />
-                  <span className="text-xs text-gray-600">
-                    Promedio de {history.competitorCount === 1 ? 'la competencia' : `${history.competitorCount} competidores`}
-                  </span>
-                </div>
+            {/* Toggles de cadenas */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              {history.chains.map((ch, i) => {
+                const isHidden = hiddenChains.has(ch.slug);
+                const color = colorForChain(ch.slug, i);
+                return (
+                  <button
+                    key={ch.slug}
+                    onClick={() => toggleChain(ch.slug)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                      isHidden
+                        ? 'border-gray-200 text-gray-400 bg-white'
+                        : 'border-gray-200 text-gray-700 bg-gray-50'
+                    }`}
+                  >
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: color, opacity: isHidden ? 0.3 : 1 }}
+                    />
+                    {ch.name}
+                  </button>
+                );
+              })}
+              {history.chains.length > 1 && (
+                <button
+                  onClick={() => setShowAvg((v) => !v)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border border-dashed ${
+                    showAvg
+                      ? 'border-gray-400 text-gray-700 bg-gray-50'
+                      : 'border-gray-200 text-gray-400 bg-white'
+                  }`}
+                >
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: AVG_COLOR, opacity: showAvg ? 1 : 0.3 }}
+                  />
+                  Promedio global
+                </button>
               )}
             </div>
 
@@ -816,23 +819,17 @@ export default function PriceHistoryPage() {
               <LineChart days={chartDays} series={chartSeries} />
             ) : (
               <div className="py-12 text-center text-sm text-gray-400">
-                Sin datos para mostrar.
+                Selecciona al menos una cadena para mostrar la gráfica.
               </div>
-            )}
-
-            {!hasCompetition && history.competitorCount > 0 && (
-              <p className="mt-3 text-xs text-gray-500 text-center">
-                Este producto no tiene matches en otras cadenas en el período seleccionado.
-              </p>
             )}
           </div>
 
-          {/* Tabla — ancho completo, con scroll vertical interno limitado */}
+          {/* Tabla — una columna por cadena */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 pb-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
               <h3 className="font-semibold text-gray-800">Detalle por día</h3>
               <p className="text-xs text-gray-400">
-                {series.length} {series.length === 1 ? 'fila' : 'filas'}
+                {seriesData.length} {seriesData.length === 1 ? 'fila' : 'filas'}
               </p>
             </div>
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
@@ -842,74 +839,54 @@ export default function PriceHistoryPage() {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 bg-white">
                       Fecha
                     </th>
+                    {history.chains.map((ch, i) => (
+                      <th
+                        key={ch.slug}
+                        className="text-right py-3 px-4 text-sm font-semibold text-gray-600 bg-white"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span
+                            className="inline-block w-2 h-2 rounded-full"
+                            style={{ backgroundColor: colorForChain(ch.slug, i) }}
+                          />
+                          {ch.name}
+                        </div>
+                      </th>
+                    ))}
                     <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 bg-white">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span
-                          className="inline-block w-2 h-2 rounded-full"
-                          style={{ backgroundColor: OWN_COLOR }}
-                        />
-                        Tu precio
-                      </div>
-                    </th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 bg-white">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span
-                          className="inline-block w-2 h-2 rounded-full"
-                          style={{ backgroundColor: AVG_COLOR }}
-                        />
-                        Prom. competencia
-                      </div>
-                    </th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 bg-white">
-                      Δ vs prom.
+                      Promedio
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[...series].reverse().map((pt) => {
-                    const diff =
-                      pt.ownPrice != null &&
-                      pt.avgCompetition != null &&
-                      pt.avgCompetition > 0
-                        ? ((pt.ownPrice - pt.avgCompetition) / pt.avgCompetition) * 100
-                        : null;
-                    return (
-                      <tr
-                        key={pt.day}
-                        className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors"
-                      >
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {new Date(pt.day).toLocaleDateString('es-VE', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td
-                          className="py-3 px-4 text-sm text-right font-semibold"
-                          style={{ color: OWN_COLOR }}
-                        >
-                          {pt.ownPrice != null ? `$${pt.ownPrice.toFixed(2)}` : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right text-gray-600">
-                          {pt.avgCompetition != null
-                            ? `$${pt.avgCompetition.toFixed(2)}`
-                            : '—'}
-                        </td>
-                        <td
-                          className={`py-3 px-4 text-sm text-right font-medium ${
-                            diff == null
-                              ? 'text-gray-400'
-                              : diff <= 0
-                                ? 'text-green-600'
-                                : 'text-red-500'
-                          }`}
-                        >
-                          {diff == null ? '—' : `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {[...seriesData].reverse().map((pt) => (
+                    <tr
+                      key={pt.day}
+                      className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors"
+                    >
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {new Date(pt.day).toLocaleDateString('es-VE', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      {history.chains.map((ch) => {
+                        const v = pt.perChain[ch.slug];
+                        return (
+                          <td
+                            key={ch.slug}
+                            className="py-3 px-4 text-sm text-right text-gray-700"
+                          >
+                            {v != null ? `$${v.toFixed(2)}` : '—'}
+                          </td>
+                        );
+                      })}
+                      <td className="py-3 px-4 text-sm text-right font-semibold text-gray-800">
+                        {pt.avgAll != null ? `$${pt.avgAll.toFixed(2)}` : '—'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -917,7 +894,7 @@ export default function PriceHistoryPage() {
         </>
       )}
 
-      {!loadingHistory && !historyError && history && series.length === 0 && (
+      {!loadingHistory && !historyError && history && seriesData.length === 0 && (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
           <BarChart3 size={48} className="mx-auto text-gray-300 mb-4" />
           <p className="text-gray-500">

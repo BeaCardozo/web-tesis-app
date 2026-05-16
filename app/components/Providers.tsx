@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { AuthProvider } from '../context/AuthContext';
 import { FxProvider } from '../context/FxContext';
 import { SidebarProvider } from '../context/SidebarContext';
+import { SessionChangeBanner } from './SessionChangeBanner';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ export function Providers({ children }: ProvidersProps) {
       <FxProvider>
         <SidebarProvider>
           {children}
+          <SessionChangeBanner />
         </SidebarProvider>
       </FxProvider>
     </AuthProvider>

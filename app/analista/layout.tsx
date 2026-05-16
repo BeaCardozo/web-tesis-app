@@ -19,14 +19,12 @@ export default function AnalistaLayout({
     if (!isLoading) {
       if (!isAuthenticated) {
         router.push('/login');
-      } else if (user?.role !== 'Analista') {
-        // Si no es analista, redirigir según el rol
-        if (user?.role === 'Administrador') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/usuario');
-        }
+      } else if (user?.role === 'Administrador') {
+        router.push('/admin/dashboard');
+      } else if (user?.role === 'Usuario') {
+        router.push('/usuario/inicio');
       }
+      // Si es Analista, se queda en /analista/*
     }
   }, [isLoading, isAuthenticated, user, router]);
 
