@@ -926,7 +926,52 @@ export const analystApi = {
     const json: ApiResponse<AnalystPriceHistory> = await res.json();
     return json.data;
   },
+
+  async comparisonReport(days = 30): Promise<AnalystComparisonReport> {
+    const res = await authFetch(
+      `${API_BASE_URL}/partners/me/comparison-report?days=${days}`,
+    );
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Error al cargar reporte'));
+    }
+    const json: ApiResponse<AnalystComparisonReport> = await res.json();
+    return json.data;
+  },
 };
+
+// ============================================
+// REPORTE COMPARATIVO (alimenta inventario, comparación y tendencias)
+// ============================================
+export interface AnalystComparisonReport {
+  supermarketSlug: string;
+  supermarketName: string;
+  daysWindow: number;
+  generatedAt: string;
+  items: AnalystComparisonReportItem[];
+  summary: {
+    totalProducts: number;
+    productsWithCompetition: number;
+    productsWithoutCompetition: number;
+    avgOwnPrice: number | null;
+    avgCompetitionPrice: number | null;
+    avgDiffPct: number | null;
+  };
+}
+
+export interface AnalystComparisonReportItem {
+  productId: string;
+  productName: string;
+  categoryName: string | null;
+  brandName: string | null;
+  unitType: string;
+  baseAmount: number;
+  ownPrice: number | null;
+  avgCompetition: number | null;
+  diffPct: number | null;
+  priceChangePct: number | null;
+  observations: number;
+}
 
 export interface AnalystPriceHistory {
   productId: string;
