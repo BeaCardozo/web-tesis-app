@@ -505,6 +505,7 @@ export interface ApiAuditEvent {
   timestamp: string;
   source: string;
   type: string;
+  schemaVersion?: number;
   actor?: { kind: string; id?: string; name?: string };
   resource?: { kind: string; id?: string };
   context?: {

@@ -3,18 +3,26 @@ import type { ApiAuditEvent } from './api';
 
 type BackendRoleKey = 'admin' | 'partner' | 'consumer';
 
-/** Claves de tipo tal como llegan desde Kafka / ca-api. */
+/** Claves de tipo tal como llegan desde el backend (`AuditEventV1.type`). */
 const TYPE_TO_ACTION: Record<string, AuditAction> = {
+  // auth
   'auth.login.success': 'user_login',
   'auth.logout': 'user_logout',
   'auth.refresh.success': 'auth_refresh',
+  // admin / users
   'admin.user.created': 'user_created',
   'admin.user.updated': 'user_updated',
   'admin.user.removed': 'user_deleted',
   'admin.user.status_toggled': 'user_status_changed',
-  'admin.user.supermarket_assigned': 'user_updated',
-  'pipeline.dag.completed': 'data_uploaded',
-  'pipeline.dag.failed': 'data_deleted',
+  'admin.user.supermarket_assigned': 'user_supermarket_assigned',
+  // admin / supermarkets
+  'admin.supermarket.created': 'supermarket_created',
+  'admin.supermarket.updated': 'supermarket_updated',
+  'admin.supermarket.status_toggled': 'supermarket_status_changed',
+  'admin.supermarket.removed': 'supermarket_deleted',
+  // pipeline (ca-scraper)
+  'pipeline.dag.completed': 'pipeline_success',
+  'pipeline.dag.failed': 'pipeline_failed',
 };
 
 function mapBackendRoleToDisplay(role: string | undefined): UserRole {
@@ -66,7 +74,7 @@ function buildTarget(event: ApiAuditEvent): Pick<AuditLog, 'targetType' | 'targe
     const dagId = typeof ctx?.dagId === 'string' ? ctx.dagId : undefined;
     const runId = typeof ctx?.runId === 'string' ? ctx.runId : undefined;
     return {
-      targetType: 'upload',
+      targetType: 'pipeline',
       targetId: runId ?? dagId,
       targetName: dagId ?? runId ?? (typeof p.dagId === 'string' ? p.dagId : undefined),
     };
@@ -82,10 +90,13 @@ function buildTarget(event: ApiAuditEvent): Pick<AuditLog, 'targetType' | 'targe
   }
 
   if (r?.kind === 'supermarket') {
+    // Si el payload trae nombre/slug (lo agregamos en Fase 3) lo preferimos.
+    const name = typeof p.name === 'string' ? p.name : undefined;
+    const slug = typeof p.slug === 'string' ? p.slug : undefined;
     return {
       targetType: 'supermarket',
       targetId: r.id,
-      targetName: r.id ? `Supermercado #${r.id}` : undefined,
+      targetName: name ?? slug ?? (r.id ? `Supermercado #${r.id}` : undefined),
     };
   }
 
@@ -120,7 +131,8 @@ export function mapAuditEventToAuditLog(event: ApiAuditEvent): AuditLog {
 export interface AuditDashboardCardStats {
   logins: number;
   usersCreated: number;
-  dataLoads: number;
+  pipelineSuccess: number;
+  pipelineFailed: number;
   total: number;
 }
 
@@ -131,7 +143,8 @@ export function statsToDashboardCards(stats: {
   return {
     logins: stats.byType['auth.login.success'] ?? 0,
     usersCreated: stats.byType['admin.user.created'] ?? 0,
-    dataLoads: stats.byType['pipeline.dag.completed'] ?? 0,
+    pipelineSuccess: stats.byType['pipeline.dag.completed'] ?? 0,
+    pipelineFailed: stats.byType['pipeline.dag.failed'] ?? 0,
     total: stats.total,
   };
 }

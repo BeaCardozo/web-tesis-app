@@ -464,13 +464,15 @@ export type AuditAction =
   | 'user_updated'
   | 'user_deleted'
   | 'user_status_changed'
+  | 'user_supermarket_assigned'
   | 'supermarket_created'
   | 'supermarket_updated'
+  | 'supermarket_status_changed'
   | 'supermarket_deleted'
+  | 'pipeline_success'
+  | 'pipeline_failed'
   | 'data_uploaded'
   | 'data_deleted'
-  | 'password_changed'
-  | 'role_changed'
   | 'system_event';
 
 export interface AuditLog {
@@ -479,7 +481,7 @@ export interface AuditLog {
   userId: string;
   userName: string;
   userRole: UserRole;
-  targetType?: 'user' | 'supermarket' | 'product' | 'upload';
+  targetType?: 'user' | 'supermarket' | 'product' | 'upload' | 'pipeline';
   targetId?: string;
   targetName?: string;
   details?: string;
@@ -582,7 +584,7 @@ export const auditLogs: AuditLog[] = [
   },
   {
     id: 'log9',
-    action: 'role_changed',
+    action: 'user_updated',
     userId: '1',
     userName: 'Admin Principal',
     userRole: 'Administrador',
@@ -608,7 +610,7 @@ export const auditLogs: AuditLog[] = [
   },
   {
     id: 'log11',
-    action: 'password_changed',
+    action: 'user_updated',
     userId: '3',
     userName: 'María García',
     userRole: 'Usuario',
