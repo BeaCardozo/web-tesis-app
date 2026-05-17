@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
+import { SidebarFxRate } from './SidebarFxRate';
 
 interface NavItem {
   name: string;
@@ -138,9 +139,11 @@ export function Sidebar() {
           </ul>
         </nav>
 
-        {/* Cerrar sesion */}
+        {/* Tasa BCV + Cerrar sesion */}
         <div className="px-3 pb-6 pt-2 shrink-0">
-          <div className={`h-px bg-white/10 mb-4 ${expanded ? 'mx-3' : 'mx-2'}`} />
+          <div className={`h-px bg-white/10 mb-2 ${expanded ? 'mx-3' : 'mx-2'}`} />
+          <SidebarFxRate expanded={expanded} />
+          <div className={`h-px bg-white/10 mb-2 mt-1 ${expanded ? 'mx-3' : 'mx-2'}`} />
           <button
             onClick={handleLogout}
             className={`
