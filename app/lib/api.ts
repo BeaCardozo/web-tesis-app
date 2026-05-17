@@ -1353,3 +1353,109 @@ export const metaApi = {
     return Array.isArray(json.data) ? json.data : [];
   },
 };
+
+// ============================================
+// ENDPOINTS DE CARGAS (ANALISTA)
+// ============================================
+export type UploadStatusBackend = 'procesando' | 'completado' | 'error';
+export type IngestionStatusBackend =
+  | 'pendiente'
+  | 'ingestado'
+  | 'sin_match'
+  | 'fallido'
+  | 'no_aplica';
+
+export interface BackendUpload {
+  id: number;
+  fileName: string;
+  fileSize: number;
+  productsCount: number;
+  errorsCount: number;
+  status: UploadStatusBackend;
+  uploadDate: string;
+  ingestionStatus: IngestionStatusBackend;
+  /** Filas que el matcher emparejó con un canónico (escritas a fact_prices). */
+  matchedRows: number;
+  /** Filas válidas que el matcher rechazó por no encontrar canónico. */
+  unmatchedRows: number;
+  /** Filas efectivamente insertadas en fact_prices tras el loader (idempotente). */
+  factRowsInserted: number;
+  /** Mensaje cuando ingestionStatus = fallido/pendiente (null cuando ok). */
+  ingestionError: string | null;
+}
+
+export const uploadsApi = {
+  async list(): Promise<BackendUpload[]> {
+    const res = await authFetch(`${API_BASE_URL}/uploads`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(err, 'No se pudo cargar el historial'));
+    }
+    const json: ApiResponse<BackendUpload[]> = await res.json();
+    return json.data;
+  },
+
+  /**
+   * Sube el CSV con progreso real (XHR — fetch no expone upload progress).
+   * Refresca el access token de forma proactiva antes de iniciar la subida
+   * porque XHR no pasa por authFetch.
+   */
+  upload(
+    file: File,
+    onProgress?: (pct: number) => void,
+  ): Promise<BackendUpload> {
+    return new Promise(async (resolve, reject) => {
+      // Refresh proactivo si el access está vencido
+      const access = getAccessToken();
+      if (!access && getRefreshToken()) {
+        await tryRefreshAccessToken();
+      }
+      const token = getAccessToken();
+
+      const form = new FormData();
+      form.append('file', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/uploads`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        try {
+          const body = JSON.parse(xhr.responseText || '{}');
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve((body as ApiResponse<BackendUpload>).data);
+          } else {
+            reject(new Error(parseApiErrorMessage(body, 'Error al subir el archivo')));
+          }
+        } catch {
+          reject(new Error('Respuesta inválida del servidor'));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Error de red al subir el archivo'));
+      xhr.send(form);
+    });
+  },
+
+  /** Descarga el reporte de errores como CSV y dispara el download en el browser. */
+  async downloadErrors(uploadId: number): Promise<void> {
+    const res = await authFetch(`${API_BASE_URL}/uploads/${uploadId}/errors.csv`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(err, 'No se pudo descargar el reporte'));
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `upload-${uploadId}-errores.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+};

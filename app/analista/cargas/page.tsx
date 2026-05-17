@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   FileText,
@@ -12,10 +12,8 @@ import {
   AlertCircle,
   FileSpreadsheet
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { mockSupermarkets, uploadHistory, UploadHistory } from '../../data/mockData';
+import { BackendUpload, IngestionStatusBackend, uploadsApi } from '../../lib/api';
 import { Pagination } from '../../components/Pagination';
-import { MockDataBanner } from '../../components/MockDataBanner';
 import { usePagination } from '../../hooks/usePagination';
 
 // ============================================
@@ -184,19 +182,110 @@ function FilePreview({
 // ============================================
 // PÁGINA PRINCIPAL DE CARGAS
 // ============================================
-export default function CargasPage() {
-  const { user } = useAuth();
-  const supermarket = mockSupermarkets.find(s => s.id === user?.supermarketId);
+function formatUploadDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('es-ES', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace(',', '');
+}
 
+function pluralize(n: number, singular: string, plural: string): string {
+  return n === 1 ? singular : plural;
+}
+
+/**
+ * Combina el resultado de validación (status) + el resultado de ingesta
+ * al DWH (ingestionStatus) en un mensaje legible. Es informativo: la barra
+ * verde sigue siendo "éxito" mientras el archivo se haya aceptado, aunque
+ * la ingesta haya devuelto sin_match/pendiente (esos se explican en el msg).
+ */
+function buildUploadResultMessage(up: BackendUpload): { success: boolean; message: string } {
+  if (up.status === 'error') {
+    return { success: false, message: 'No se reconoció ninguna fila válida en el archivo.' };
+  }
+  const errorsSuffix = up.errorsCount > 0
+    ? ` (${up.errorsCount} ${pluralize(up.errorsCount, 'fila con error', 'filas con errores')} — ver historial)`
+    : '';
+  const head = `${up.productsCount} ${pluralize(up.productsCount, 'producto válido', 'productos válidos')}${errorsSuffix}.`;
+
+  switch (up.ingestionStatus) {
+    case 'ingestado':
+      return {
+        success: true,
+        message:
+          `${head} ${up.matchedRows} ${pluralize(up.matchedRows, 'match', 'matches')} con el catálogo canónico` +
+          (up.unmatchedRows > 0 ? `, ${up.unmatchedRows} sin match` : '') +
+          ` → ${up.factRowsInserted} ${pluralize(up.factRowsInserted, 'fila insertada', 'filas insertadas')} en fact_prices.`,
+      };
+    case 'sin_match':
+      return {
+        success: true,
+        message:
+          `${head} Ningún producto matcheó el catálogo canónico (${up.unmatchedRows} sin match). ` +
+          `Los datos NO se cargaron al DWH; revisa que los nombres/marcas estén en el maestro.`,
+      };
+    case 'pendiente':
+      return {
+        success: true,
+        message:
+          `${head} Archivo guardado, pero el servicio de ingesta no está disponible. ` +
+          `Se reintentará automáticamente.`,
+      };
+    case 'fallido':
+      return {
+        success: false,
+        message: `${head} Falló la ingesta al DWH: ${up.ingestionError ?? 'error desconocido'}.`,
+      };
+    case 'no_aplica':
+    default:
+      return { success: true, message: head };
+  }
+}
+
+const INGESTION_BADGE: Record<IngestionStatusBackend, { text: string; cls: string }> = {
+  ingestado: { text: 'Ingestado', cls: 'bg-emerald-100 text-emerald-700' },
+  sin_match: { text: 'Sin match', cls: 'bg-amber-100 text-amber-700' },
+  pendiente: { text: 'Pendiente', cls: 'bg-blue-100 text-blue-700' },
+  fallido: { text: 'Fallido', cls: 'bg-red-100 text-red-700' },
+  no_aplica: { text: 'N/A', cls: 'bg-gray-100 text-gray-500' },
+};
+
+export default function CargasPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Estado local del historial (simula actualizaciones)
-  const [history, setHistory] = useState<UploadHistory[]>(
-    uploadHistory.filter(h => h.supermarketId === user?.supermarketId)
-  );
+  const [history, setHistory] = useState<BackendUpload[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHistoryLoading(true);
+    uploadsApi
+      .list()
+      .then((rows) => {
+        if (!cancelled) {
+          setHistory(rows);
+          setHistoryError(null);
+        }
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setHistoryError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Paginacion
   const {
@@ -224,44 +313,31 @@ export default function CargasPage() {
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadResult(null);
 
-    // Simular progreso de carga
-    // TODO: Reemplazar con llamada real a API
-    // const formData = new FormData();
-    // formData.append('file', selectedFile);
-    // const response = await fetch('/api/upload', { method: 'POST', body: formData });
-
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      setUploadProgress(i);
+    try {
+      const created = await uploadsApi.upload(selectedFile, (pct) => setUploadProgress(pct));
+      setHistory((prev) => [created, ...prev]);
+      setSelectedFile(null);
+      setUploadResult(buildUploadResultMessage(created));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error desconocido al subir el archivo';
+      setUploadResult({ success: false, message: msg });
+    } finally {
+      setIsUploading(false);
     }
-
-    // Simular resultado exitoso
-    const newUpload: UploadHistory = {
-      id: `u${Date.now()}`,
-      supermarketId: user?.supermarketId || '1',
-      fileName: selectedFile.name,
-      uploadDate: new Date().toLocaleString('es-ES', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).replace(',', ''),
-      productsCount: Math.floor(Math.random() * 200) + 50,
-      status: 'completado'
-    };
-
-    setHistory([newUpload, ...history]);
-    setIsUploading(false);
-    setSelectedFile(null);
-    setUploadResult({
-      success: true,
-      message: `Se procesaron ${newUpload.productsCount} productos correctamente`
-    });
   };
 
-  const getStatusIcon = (status: UploadHistory['status']) => {
+  const handleDownloadErrors = async (uploadId: number) => {
+    try {
+      await uploadsApi.downloadErrors(uploadId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al descargar el reporte';
+      setUploadResult({ success: false, message: msg });
+    }
+  };
+
+  const getStatusIcon = (status: BackendUpload['status']) => {
     switch (status) {
       case 'completado':
         return <CheckCircle size={18} className="text-green-500" />;
@@ -272,7 +348,7 @@ export default function CargasPage() {
     }
   };
 
-  const getStatusText = (status: UploadHistory['status']) => {
+  const getStatusText = (status: BackendUpload['status']) => {
     switch (status) {
       case 'completado':
         return 'Completado';
@@ -289,11 +365,9 @@ export default function CargasPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-800">Carga de Datos</h1>
         <p className="text-gray-500">
-          Sube archivos CSV con productos y precios para {supermarket?.name}
+          Sube archivos CSV con productos y precios para tu supermercado.
         </p>
       </div>
-
-      <MockDataBanner />
 
       {/* Mensaje de resultado */}
       {uploadResult && (
@@ -337,10 +411,14 @@ export default function CargasPage() {
               <code className="bg-blue-100 px-1 rounded">precio</code>,{' '}
               <code className="bg-blue-100 px-1 rounded">codigo</code> (opcional)
             </p>
-            <button className="mt-3 text-sm text-blue-700 font-medium hover:text-blue-800 flex items-center gap-1">
+            <a
+              href="/templates/cargas-template.csv"
+              download
+              className="mt-3 inline-flex items-center gap-1 text-sm text-blue-700 font-medium hover:text-blue-800"
+            >
               <Download size={16} />
               Descargar plantilla de ejemplo
-            </button>
+            </a>
           </div>
         </div>
       </div>
@@ -351,6 +429,12 @@ export default function CargasPage() {
           <h2 className="font-semibold text-gray-800">Historial de Cargas</h2>
         </div>
 
+        {historyError && (
+          <div className="px-6 py-3 bg-red-50 border-b border-red-100 text-sm text-red-700">
+            {historyError}
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -358,43 +442,90 @@ export default function CargasPage() {
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Archivo</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Fecha</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Productos</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Estado</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Validación</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Ingesta DWH</th>
+                <th className="text-right px-6 py-4 text-sm font-semibold text-gray-600">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedHistory.length > 0 ? (
-                paginatedHistory.map((upload) => (
-                  <tr key={upload.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <FileText size={20} className="text-gray-400" />
-                        <span className="font-medium text-gray-800">{upload.fileName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{upload.uploadDate}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-gray-800">{upload.productsCount}</span>
-                      {upload.errors && (
-                        <span className="ml-2 text-xs text-red-500">({upload.errors} errores)</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        upload.status === 'completado'
-                          ? 'bg-green-100 text-green-700'
-                          : upload.status === 'procesando'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-red-100 text-red-700'
-                      }`}>
-                        {getStatusIcon(upload.status)}
-                        {getStatusText(upload.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+              {historyLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    Cargando historial...
+                  </td>
+                </tr>
+              ) : paginatedHistory.length > 0 ? (
+                paginatedHistory.map((upload) => {
+                  const badge = INGESTION_BADGE[upload.ingestionStatus] ?? INGESTION_BADGE.no_aplica;
+                  return (
+                    <tr key={upload.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <FileText size={20} className="text-gray-400" />
+                          <span className="font-medium text-gray-800">{upload.fileName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{formatUploadDate(upload.uploadDate)}</td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-800">{upload.productsCount}</span>
+                        {upload.errorsCount > 0 && (
+                          <span className="ml-2 text-xs text-red-500">({upload.errorsCount} con error)</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          upload.status === 'completado'
+                            ? 'bg-green-100 text-green-700'
+                            : upload.status === 'procesando'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-red-100 text-red-700'
+                        }`}>
+                          {getStatusIcon(upload.status)}
+                          {getStatusText(upload.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium w-fit ${badge.cls}`}
+                            title={upload.ingestionError ?? ''}
+                          >
+                            {badge.text}
+                          </span>
+                          {upload.ingestionStatus === 'ingestado' && (
+                            <span className="text-xs text-gray-500">
+                              {upload.matchedRows}/{upload.matchedRows + upload.unmatchedRows} matches · {upload.factRowsInserted} a fact_prices
+                            </span>
+                          )}
+                          {upload.ingestionStatus === 'sin_match' && (
+                            <span className="text-xs text-amber-600">
+                              0/{upload.unmatchedRows} matches
+                            </span>
+                          )}
+                          {upload.ingestionStatus === 'fallido' && upload.ingestionError && (
+                            <span className="text-xs text-red-500 truncate max-w-[200px]" title={upload.ingestionError}>
+                              {upload.ingestionError}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {upload.errorsCount > 0 && (
+                          <button
+                            onClick={() => handleDownloadErrors(upload.id)}
+                            className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-700 font-medium"
+                          >
+                            <Download size={14} />
+                            Errores
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     No hay cargas registradas
                   </td>
                 </tr>
