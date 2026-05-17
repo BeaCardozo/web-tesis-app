@@ -6,8 +6,8 @@ import {
   RefreshCw,
   ShoppingCart,
   TrendingDown,
-  Store,
 } from 'lucide-react';
+import { Footer } from './components/Footer';
 
 // ============================================
 // LANDING PAGE — CaracasAhorra
@@ -95,7 +95,7 @@ function Hero() {
         <div className="space-y-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-primary/40 text-xs font-medium text-accent-green-dark animate-fade-in-up">
             <Sparkles size={14} className="text-button-green" />
-            Actualizado cada 30 minutos
+            Actualizado todos los días!
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-gray-900 animate-fade-in-up delay-100">
@@ -108,7 +108,7 @@ function Hero() {
 
           <p className="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed animate-fade-in-up delay-200">
             Conoce dónde está más barato cada producto de la canasta CENDAS comparando precios
-            entre los principales supermercados de la ciudad, todos los días.
+            entre los principales supermercados de Caracas, todos los días.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 animate-fade-in-up delay-300">
@@ -143,8 +143,8 @@ function Hero() {
 // Ilustración del hero: mockup de comparación de precios
 function HeroIllustration() {
   const items = [
-    { name: 'Auyama 1 Kg', chain: 'Gama', price: '$0.89' },
-    { name: 'Auyama 1 Kg', chain: 'Madeirense', price: '$0.90' },
+    { name: 'Auyama 1 Kg', chain: 'Excelsior Gama', price: '$0.89' },
+    { name: 'Auyama 1 Kg', chain: 'Central Madeirense', price: '$0.90' },
     { name: 'Auyama 1 Kg', chain: 'Plansuarez', price: '$0.75' },
   ];
 
@@ -159,7 +159,7 @@ function HeroIllustration() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-lighter to-primary flex items-center justify-center text-2xl">
-              🎃
+              
             </div>
             <div>
               <p className="font-semibold text-gray-900">Auyama</p>
@@ -243,7 +243,7 @@ function HeroIllustration() {
       >
         <div className="flex items-center gap-2">
           <Sparkles size={14} />
-          <span className="text-xs font-semibold">+59 productos</span>
+          <span className="text-xs font-semibold">+50 productos</span>
         </div>
       </div>
     </div>
@@ -257,22 +257,22 @@ const STEPS = [
   {
     n: 1,
     icon: ShoppingCart,
-    title: 'Catálogo curado',
-    desc: 'Seleccionamos 59 productos representativos de los 11 rubros de la canasta alimentaria definidos por CENDAS.',
+    title: 'Catálogo Seleccionado',
+    desc: 'Seleccionamos más de 50 productos representativos de las 11 categorías de nuestra canasta alimentaria.',
     gradient: 'from-primary to-button-green',
   },
   {
     n: 2,
     icon: RefreshCw,
-    title: 'Datos siempre frescos',
-    desc: 'Cada 30 minutos un pipeline automático extrae los precios de cada cadena y los normaliza para comparar manzanas con manzanas.',
+    title: 'Datos Siempre Actualizados',
+    desc: 'Cada 24 horas, se extraen automaticamente los precios de cada cadena para garantizar que siempre tengas la información más reciente al alcance de tu mano.',
     gradient: 'from-button-green to-accent-green',
   },
   {
     n: 3,
     icon: Search,
-    title: 'Compara y ahorra',
-    desc: 'Arma tu carrito y descubre en qué supermercado pagas menos por la misma compra, con histórico de precios y tendencias.',
+    title: 'Compara y Ahorra',
+    desc: 'Arma tu carrito y descubre en qué supermercado pagas menos por la misma compra, o como puedes organizarte para conseguir los mejores precios comprando en varios supermercados',
     gradient: 'from-accent-green to-accent-green-dark',
   },
 ];
@@ -335,68 +335,3 @@ function HowItWorks() {
   );
 }
 
-// ============================================
-// FOOTER
-// ============================================
-function Footer() {
-  const year = new Date().getFullYear();
-  return (
-    <footer className="bg-accent-green-dark text-white">
-      <div className="max-w-6xl mx-auto px-6 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
-                <ShoppingCart size={18} className="text-primary-lighter" />
-              </div>
-              <span className="text-xl">
-                <span className="font-bold text-primary-lighter">Caracas</span>
-                <span className="font-bold text-white">Ahorra</span>
-              </span>
-            </div>
-            <p className="text-sm text-white/70 leading-relaxed">
-              Comparador de precios de la canasta alimentaria en supermercados de Caracas.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider mb-3 text-white/60">
-              Plataforma
-            </h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/login" className="text-white/80 hover:text-white transition-colors">
-                  Iniciar sesión
-                </Link>
-              </li>
-              <li>
-                <Link href="/register" className="text-white/80 hover:text-white transition-colors">
-                  Crear cuenta
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider mb-3 text-white/60">
-              Acerca del proyecto
-            </h4>
-            <p className="text-sm text-white/80 leading-relaxed">
-              Trabajo de grado · Universidad Metropolitana
-              <br />
-              Caracas, Venezuela
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-white/60">
-          <p>© {year} CaracasAhorra. Proyecto académico.</p>
-          <div className="flex items-center gap-2">
-            <Store size={12} />
-            <span>Comparamos Gama, Central Madeirense y Plan Suárez</span>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}

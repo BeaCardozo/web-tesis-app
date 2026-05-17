@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { SidebarAnalista } from '../components/SidebarAnalista';
+import { FooterCompact } from '../components/Footer';
 
 export default function AnalistaLayout({
   children,
@@ -49,16 +50,17 @@ export default function AnalistaLayout({
     <div className="min-h-screen bg-gray-50">
       <SidebarAnalista />
       {/* Contenido principal con margen dinámico para el sidebar */}
-      <main className={`transition-all duration-300 ${
+      <main className={`min-h-screen flex flex-col transition-all duration-300 ${
         isMobile
           ? 'ml-0 pt-16'
           : isCollapsed
             ? 'ml-20'
             : 'ml-[272px]'
       }`}>
-        <div className="px-6 pt-10 pb-6">
+        <div className="flex-1 px-6 pt-10 pb-6">
           {children}
         </div>
+        <FooterCompact />
       </main>
     </div>
   );

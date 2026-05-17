@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -57,8 +58,9 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-lighter via-primary-lightest to-accent-pastel-light flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-primary-lighter via-primary-lightest to-accent-pastel-light">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
           <h1 className="text-4xl mb-2">
@@ -146,7 +148,9 @@ function LoginForm() {
             </p>
           </div>
         </div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
