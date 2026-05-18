@@ -1402,6 +1402,7 @@ export const uploadsApi = {
    */
   upload(
     file: File,
+    currency: 'USD' | 'VES',
     onProgress?: (pct: number) => void,
   ): Promise<BackendUpload> {
     return new Promise(async (resolve, reject) => {
@@ -1414,6 +1415,7 @@ export const uploadsApi = {
 
       const form = new FormData();
       form.append('file', file);
+      form.append('currency', currency);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_BASE_URL}/uploads`);

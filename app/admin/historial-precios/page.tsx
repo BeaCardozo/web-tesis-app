@@ -21,6 +21,7 @@ import {
   productsApi,
   ApiProduct,
 } from '../../lib/api';
+import { parseDayLocal } from '../../lib/date-utils';
 
 // ============================================
 // CONFIG
@@ -294,7 +295,7 @@ function LineChart({
               fontSize="11"
               fill="#6b7280"
             >
-              {new Date(day).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })}
+              {parseDayLocal(day).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })}
             </text>
           );
         })}
@@ -353,7 +354,7 @@ function LineChart({
           }}
         >
           <p className="font-semibold text-gray-800 mb-2 pb-2 border-b border-gray-100">
-            {new Date(hoveredDayStr).toLocaleDateString('es-VE', {
+            {parseDayLocal(hoveredDayStr).toLocaleDateString('es-VE', {
               day: '2-digit',
               month: 'short',
               year: 'numeric',
@@ -865,7 +866,7 @@ export default function AdminPriceHistoryPage() {
                       className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors"
                     >
                       <td className="py-3 px-4 text-sm text-gray-600">
-                        {new Date(pt.day).toLocaleDateString('es-VE', {
+                        {parseDayLocal(pt.day).toLocaleDateString('es-VE', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',

@@ -111,12 +111,16 @@ function UploadZone({
 // ============================================
 function FilePreview({
   file,
+  currency,
+  onCurrencyChange,
   onRemove,
   onUpload,
   isUploading,
   uploadProgress
 }: {
   file: File;
+  currency: 'USD' | 'VES';
+  onCurrencyChange: (c: 'USD' | 'VES') => void;
   onRemove: () => void;
   onUpload: () => void;
   isUploading: boolean;
@@ -167,13 +171,36 @@ function FilePreview({
       )}
 
       {!isUploading && (
-        <button
-          onClick={onUpload}
-          className="mt-4 w-full py-3 bg-button-green text-white rounded-xl font-medium hover:bg-accent-green-dark transition-colors flex items-center justify-center gap-2"
-        >
-          <Upload size={20} />
-          Subir Archivo
-        </button>
+        <>
+          <div className="mt-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Moneda de los precios del archivo
+            </p>
+            <div className="flex gap-2">
+              {(['VES', 'USD'] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => onCurrencyChange(c)}
+                  className={`flex-1 py-2 px-4 rounded-xl border font-medium transition-colors ${
+                    currency === c
+                      ? 'bg-accent-green-dark text-white border-accent-green-dark'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {c === 'VES' ? 'Bolívares (VES)' : 'Dólares (USD)'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onUpload}
+            className="mt-4 w-full py-3 bg-button-green text-white rounded-xl font-medium hover:bg-accent-green-dark transition-colors flex items-center justify-center gap-2"
+          >
+            <Upload size={20} />
+            Subir Archivo
+          </button>
+        </>
       )}
     </div>
   );
@@ -257,6 +284,7 @@ const INGESTION_BADGE: Record<IngestionStatusBackend, { text: string; cls: strin
 
 export default function CargasPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'VES'>('VES');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -316,7 +344,7 @@ export default function CargasPage() {
     setUploadResult(null);
 
     try {
-      const created = await uploadsApi.upload(selectedFile, (pct) => setUploadProgress(pct));
+      const created = await uploadsApi.upload(selectedFile, selectedCurrency, (pct) => setUploadProgress(pct));
       setHistory((prev) => [created, ...prev]);
       setSelectedFile(null);
       setUploadResult(buildUploadResultMessage(created));
@@ -390,6 +418,8 @@ export default function CargasPage() {
       {selectedFile ? (
         <FilePreview
           file={selectedFile}
+          currency={selectedCurrency}
+          onCurrencyChange={setSelectedCurrency}
           onRemove={handleRemoveFile}
           onUpload={handleUpload}
           isUploading={isUploading}
@@ -408,8 +438,7 @@ export default function CargasPage() {
             <p className="text-sm text-blue-600 mt-1">
               El archivo debe contener las columnas: <code className="bg-blue-100 px-1 rounded">nombre</code>,{' '}
               <code className="bg-blue-100 px-1 rounded">categoria</code>,{' '}
-              <code className="bg-blue-100 px-1 rounded">precio</code>,{' '}
-              <code className="bg-blue-100 px-1 rounded">codigo</code> (opcional)
+              <code className="bg-blue-100 px-1 rounded">precio</code>
             </p>
             <a
               href="/templates/cargas-template.csv"

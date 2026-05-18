@@ -1,4 +1,4 @@
-nombre,categoria,precio,codigo
-Harina de Maíz Precocida 1kg,Cereales y Derivados,2.50,HRN-001
-Aceite de Maíz 1L,Aceites y Grasas,4.80,ACT-002
-Leche Líquida 1L,Lácteos,1.95,LCH-003
+nombre,categoria,precio
+Harina de Maíz Precocida 1kg,Cereales y Derivados,2.50
+Aceite de Maíz 1L,Aceites y Grasas,4.80
+Leche Líquida 1L,Lácteos,1.95
