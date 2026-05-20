@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Check, Circle } from 'lucide-react';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Footer } from '../components/Footer';
@@ -24,9 +24,23 @@ export default function RegisterPage() {
     acceptTerms: false,
   });
 
+  const passwordChecks = [
+    { label: 'Al menos 8 caracteres', valid: formData.password.length >= 8 },
+    { label: 'Una letra mayúscula', valid: /[A-Z]/.test(formData.password) },
+    { label: 'Una letra minúscula', valid: /[a-z]/.test(formData.password) },
+    { label: 'Un número', valid: /[0-9]/.test(formData.password) },
+    { label: 'Un símbolo (!@#$...)', valid: /[^A-Za-z0-9]/.test(formData.password) },
+  ];
+  const isPasswordStrong = passwordChecks.every((c) => c.valid);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!isPasswordStrong) {
+      setError('La contraseña no cumple con los requisitos de seguridad.');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -51,7 +65,10 @@ export default function RegisterPage() {
       // Registro exitoso, redirigir al login
       router.push('/login?registered=true');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al registrar usuario';
+      const raw = err instanceof Error ? err.message : 'Error al registrar usuario';
+      const message = /password is not strong enough/i.test(raw)
+        ? 'La contraseña no cumple con los requisitos de seguridad.'
+        : raw;
       setError(message);
     } finally {
       setIsLoading(false);
@@ -81,25 +98,25 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Nombre */}
-            <Input
-              type="text"
-              placeholder="Nombre"
-              icon={<User size={20} />}
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              required
-            />
-
-            {/* Apellido */}
-            <Input
-              type="text"
-              placeholder="Apellido"
-              icon={<User size={20} />}
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              required
-            />
+            {/* Nombre + Apellido */}
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="text"
+                placeholder="Nombre"
+                icon={<User size={20} />}
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                required
+              />
+              <Input
+                type="text"
+                placeholder="Apellido"
+                icon={<User size={20} />}
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                required
+              />
+            </div>
 
             {/* Email */}
             <Input
@@ -112,16 +129,33 @@ export default function RegisterPage() {
             />
 
             {/* Password */}
-            <Input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Contraseña"
-              icon={<Lock size={20} />}
-              rightIcon={showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              onRightIconClick={() => setShowPassword(!showPassword)}
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-            />
+            <div className="space-y-2">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Contraseña"
+                icon={<Lock size={20} />}
+                rightIcon={showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                onRightIconClick={() => setShowPassword(!showPassword)}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+              />
+              {formData.password.length > 0 && (
+                <ul className="px-2 pt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  {passwordChecks.map((c) => (
+                    <li
+                      key={c.label}
+                      className={`flex items-center gap-2 transition-colors ${
+                        c.valid ? 'text-accent-green-dark' : 'text-gray-400'
+                      }`}
+                    >
+                      {c.valid ? <Check size={14} /> : <Circle size={14} />}
+                      <span>{c.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             {/* Confirm Password */}
             <Input
@@ -145,7 +179,7 @@ export default function RegisterPage() {
                 className="w-5 h-5 rounded border-2 border-gray-300 text-accent-green focus:ring-accent-green mt-0.5"
                 required
               />
-              <label htmlFor="terms" className="ml-3 text-gray-700">
+              <label htmlFor="terms" className="ml-3 text-sm text-gray-700">
                 Acepto los{' '}
                 <Link
                   href="/terms"
@@ -164,7 +198,7 @@ export default function RegisterPage() {
 
           {/* Enlace a login */}
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-sm text-gray-600">
               ¿Ya tienes cuenta?{' '}
               <Link
                 href="/login"
