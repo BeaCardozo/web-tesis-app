@@ -8,13 +8,13 @@ import {
   TrendingDown,
   TrendingUp,
   Clock,
-  Store,
   DollarSign,
   ShoppingCart,
   Check,
   ArrowUpDown,
   Loader2,
 } from 'lucide-react';
+import { SupermarketLogo } from '../../../components/SupermarketLogo';
 import {
   productsApi,
   cartsApi,
@@ -24,7 +24,9 @@ import {
 } from '../../../lib/api';
 import { formatTimeAgo } from '../../../data/userMockData';
 import { ProductOfferPrice } from '../../../components/ProductOfferPrice';
+import { CurrencyPicker } from '../../../components/CurrencyPicker';
 import { useFx } from '../../../context/FxContext';
+import { formatBs } from '../../../lib/currency';
 
 type PriceSortOption = 'priceAsc' | 'priceDesc' | 'nameAsc' | 'recent';
 
@@ -142,7 +144,7 @@ export default function ProductoDetallePage() {
   }, [lowest]);
 
   const formatCurrency = (usd: number, bs?: number) => {
-    if (currency === 'Bs') return `Bs. ${(bs ?? usd * rateUsdToBs).toFixed(2)}`;
+    if (currency === 'Bs') return formatBs(bs ?? usd * rateUsdToBs);
     return `$${usd.toFixed(2)}`;
   };
 
@@ -229,29 +231,7 @@ export default function ProductoDetallePage() {
           <ArrowLeft size={20} />
           <span className="text-sm font-medium">Volver</span>
         </button>
-        <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
-          <button
-            onClick={() => setCurrency('USD')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              currency === 'USD'
-                ? 'bg-button-green text-white'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <DollarSign size={14} />
-            USD
-          </button>
-          <button
-            onClick={() => setCurrency('Bs')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              currency === 'Bs'
-                ? 'bg-button-green text-white'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Bs
-          </button>
-        </div>
+        <CurrencyPicker currency={currency} onChange={setCurrency} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -284,9 +264,6 @@ export default function ProductoDetallePage() {
               </span>
               <h1 className="text-xl font-bold text-gray-800 mb-1">{product.name}</h1>
               <p className="text-sm text-gray-400 mb-3">{unit}</p>
-              {product.brand && (
-                <p className="text-sm text-gray-500">Marca: {product.brand.name}</p>
-              )}
               {product.description && (
                 <p className="text-sm text-gray-600 mt-2">{product.description}</p>
               )}
@@ -451,9 +428,7 @@ export default function ProductoDetallePage() {
                           <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold text-gray-400 bg-gray-100">
                             {index + 1}
                           </div>
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-button-green">
-                            <Store size={18} />
-                          </div>
+                          <SupermarketLogo name={price.supermarketName} size={40} />
                           <div>
                             <p className="font-medium text-gray-800">{price.supermarketName}</p>
                             {price.storeName && (

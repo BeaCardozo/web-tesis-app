@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ShoppingCart,
   Package,
-  DollarSign,
   Star,
   Loader2,
   Sparkles,
@@ -21,7 +20,9 @@ import {
   ApiCategory,
 } from '../../lib/api';
 import { getCategoryIcon } from '../../lib/categoryIcons';
+import { formatBs } from '../../lib/currency';
 import { ProductOfferPrice } from '../../components/ProductOfferPrice';
+import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { useAuth } from '../../context/AuthContext';
 import { useFx } from '../../context/FxContext';
 
@@ -112,7 +113,7 @@ export default function InicioPage() {
   }, [categories]);
 
   const formatCurrency = (usd: number) => {
-    if (currency === 'Bs') return `Bs. ${(usd * rateUsdToBs).toFixed(2)}`;
+    if (currency === 'Bs') return formatBs(usd * rateUsdToBs);
     return `$${usd.toFixed(2)}`;
   };
 
@@ -152,30 +153,7 @@ export default function InicioPage() {
             </p>
           </div>
         </div>
-        {/* Selector de moneda */}
-        <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm">
-          <button
-            onClick={() => setCurrency('USD')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              currency === 'USD'
-                ? 'bg-button-green text-white shadow-md shadow-button-green/25'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <DollarSign size={14} />
-            USD
-          </button>
-          <button
-            onClick={() => setCurrency('Bs')}
-            className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              currency === 'Bs'
-                ? 'bg-button-green text-white shadow-md shadow-button-green/25'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Bs
-          </button>
-        </div>
+        <CurrencyPicker currency={currency} onChange={setCurrency} />
       </div>
 
       {/* Carousel de banners */}

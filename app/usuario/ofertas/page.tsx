@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, Package, Loader2, DollarSign, ShoppingCart, TrendingDown } from 'lucide-react';
+import { Tag, Package, Loader2, ShoppingCart, TrendingDown } from 'lucide-react';
 import { offersApi, ApiDeal, ApiDealsCount } from '../../lib/api';
 import { ProductOfferPrice } from '../../components/ProductOfferPrice';
+import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { useFx } from '../../context/FxContext';
+import { formatBs } from '../../lib/currency';
 
 export default function OfertasPage() {
   const router = useRouter();
@@ -49,7 +51,7 @@ export default function OfertasPage() {
       return `Ahorras ${
         currency === 'USD'
           ? `$${(deal.originalPriceUsd - deal.priceUsd).toFixed(2)}`
-          : `Bs. ${((deal.originalPriceBs ?? 0) - deal.priceBs).toFixed(2)}`
+          : formatBs((deal.originalPriceBs ?? 0) - deal.priceBs)
       }`;
     }
     return 'En oferta';
@@ -64,29 +66,7 @@ export default function OfertasPage() {
             {totalLabel} producto{totalLabel !== 1 ? 's' : ''} en oferta
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
-          <button
-            onClick={() => setCurrency('USD')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              currency === 'USD'
-                ? 'bg-button-green text-white'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <DollarSign size={14} />
-            USD
-          </button>
-          <button
-            onClick={() => setCurrency('Bs')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              currency === 'Bs'
-                ? 'bg-button-green text-white'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Bs
-          </button>
-        </div>
+        <CurrencyPicker currency={currency} onChange={setCurrency} />
       </div>
 
       {!isLoading && (dealsCount?.by_supermarket?.length ?? 0) > 0 && (

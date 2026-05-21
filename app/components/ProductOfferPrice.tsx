@@ -1,5 +1,7 @@
 'use client';
 
+import { formatBs } from '../lib/currency';
+
 export type OfferPriceCurrency = 'USD' | 'Bs';
 
 export interface ProductOfferPriceProps {
@@ -19,7 +21,7 @@ export interface ProductOfferPriceProps {
 }
 
 function formatAmount(usd: number, bs: number, currency: OfferPriceCurrency): string {
-  if (currency === 'Bs') return `Bs. ${bs.toFixed(2)}`;
+  if (currency === 'Bs') return formatBs(bs);
   return `$${usd.toFixed(2)}`;
 }
 

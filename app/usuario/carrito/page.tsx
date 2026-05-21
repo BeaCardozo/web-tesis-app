@@ -9,13 +9,12 @@ import {
   Minus,
   X,
   Package,
-  Store,
-  DollarSign,
   ChevronDown,
   ArrowRight,
   Loader2,
   AlertCircle,
 } from 'lucide-react';
+import { SupermarketLogo } from '../../components/SupermarketLogo';
 import {
   cartsApi,
   ApiCart,
@@ -24,8 +23,9 @@ import {
   ApiCompareSingleResult,
   ApiCompareMixedResult,
 } from '../../lib/api';
-import { formatTimeAgo } from '../../data/userMockData';
+import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { useFx } from '../../context/FxContext';
+import { formatBs } from '../../lib/currency';
 
 export default function CarritoPage() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export default function CarritoPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [compareVersion, setCompareVersion] = useState(0);
 
-  const { rateUsdToBs, isStale, lastFetchedAt } = useFx();
+  const { rateUsdToBs } = useFx();
 
   const cartItems = activeCart?.items || [];
 
@@ -234,10 +234,10 @@ export default function CarritoPage() {
   const formatCurrency = (usd: number, bsPrecalc?: number | null) => {
     if (currency === 'Bs') {
       if (bsPrecalc != null && Number.isFinite(bsPrecalc)) {
-        return `Bs. ${bsPrecalc.toFixed(2)}`;
+        return formatBs(bsPrecalc);
       }
       const r = compareFxRate ?? rateUsdToBs;
-      return `Bs. ${(usd * r).toFixed(2)}`;
+      return formatBs(usd * r);
     }
     return `$${usd.toFixed(2)}`;
   };
@@ -258,40 +258,7 @@ export default function CarritoPage() {
           <h1 className="text-2xl font-bold text-gray-800">Mi Carrito</h1>
           <p className="text-gray-500 mt-1">Compara precios y optimiza tu compra</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                currency === 'USD'
-                  ? 'bg-button-green text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <DollarSign size={14} />
-              USD
-            </button>
-            <button
-              onClick={() => setCurrency('Bs')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                currency === 'Bs'
-                  ? 'bg-button-green text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Bs
-            </button>
-          </div>
-        </div>
-        {currency === 'Bs' && (
-          <p className="text-xs text-gray-400 mt-1 text-right sm:text-left max-w-md">
-            Tasa referencia ~{rateUsdToBs.toFixed(2)} Bs/USD
-            {isStale ? ' · puede estar desactualizada' : ''}
-            {lastFetchedAt != null
-              ? ` · ${formatTimeAgo(new Date(lastFetchedAt).toISOString())}`
-              : ''}
-          </p>
-        )}
+        <CurrencyPicker currency={currency} onChange={setCurrency} />
       </div>
 
       {/* Error */}
@@ -530,12 +497,14 @@ export default function CarritoPage() {
                       >
                         <div className="flex items-center justify-between p-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold text-gray-400 bg-gray-100">
+                            <div className={`flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold ${
+                              isCheapest && sm.allProductsAvailable
+                                ? 'text-green-600 bg-green-100'
+                                : 'text-gray-400 bg-gray-100'
+                            }`}>
                               {index + 1}
                             </div>
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm bg-button-green">
-                              <Store size={18} />
-                            </div>
+                            <SupermarketLogo name={sm.name} size={40} />
                             <div>
                               <p className="font-medium text-gray-800">{sm.name}</p>
                               <p className="text-xs text-gray-400">
@@ -606,9 +575,7 @@ export default function CarritoPage() {
                   <div key={sm.supermarketName} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                     <div className="flex items-center justify-between p-4 border-b border-gray-50">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-button-green">
-                          <Store size={18} />
-                        </div>
+                        <SupermarketLogo name={sm.supermarketName} size={40} />
                         <div>
                           <p className="font-medium text-gray-800">{sm.supermarketName}</p>
                           <p className="text-xs text-gray-400">
@@ -624,9 +591,6 @@ export default function CarritoPage() {
                       {sm.purchases.map((p) => (
                         <div key={p.productId} className="flex items-center justify-between px-5 py-3 ml-4">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="w-8 h-8 bg-primary-lightest rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Package size={14} className="text-button-green/40" />
-                            </div>
                             <div className="min-w-0">
                               <p className="text-sm text-gray-700 line-clamp-1">{p.productName}</p>
                               <p className="text-xs text-gray-400">

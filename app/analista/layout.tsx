@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { SidebarAnalista } from '../components/SidebarAnalista';
+import { FxRateDisplay } from '../components/FxRateDisplay';
 import { FooterCompact } from '../components/Footer';
 
 export default function AnalistaLayout({
@@ -58,6 +59,9 @@ export default function AnalistaLayout({
             : 'ml-[272px]'
       }`}>
         <div className="flex-1 px-6 pt-10 pb-6">
+          <div className="flex justify-end mb-4">
+            <FxRateDisplay />
+          </div>
           {children}
         </div>
         <FooterCompact />

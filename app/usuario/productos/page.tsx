@@ -8,7 +8,6 @@ import {
   X,
   Package,
   ShoppingCart,
-  DollarSign,
   ChevronDown,
   ArrowUpDown,
   Loader2,
@@ -21,6 +20,7 @@ import {
 } from '../../lib/api';
 import { Pagination } from '../../components/Pagination';
 import { ProductOfferPrice } from '../../components/ProductOfferPrice';
+import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { useFx } from '../../context/FxContext';
 import { usePagination } from '../../hooks/usePagination';
 
@@ -61,6 +61,8 @@ function ProductosContent() {
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('buscar') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('nameAsc');
   const [showFilters, setShowFilters] = useState(false);
   const [currency, setCurrency] = useState<'USD' | 'Bs'>('USD');
@@ -81,12 +83,16 @@ function ProductosContent() {
       setIsLoading(true);
       setError('');
       try {
+        const minNum = minPrice ? parseFloat(minPrice) : undefined;
+        const maxNum = maxPrice ? parseFloat(maxPrice) : undefined;
         const data = await productsApi.list({
           page: apiPage,
           limit: apiLimit,
           search: searchQuery || undefined,
           category: selectedCategory || undefined,
           sortBy: sortBy,
+          minPrice: Number.isFinite(minNum) ? minNum : undefined,
+          maxPrice: Number.isFinite(maxNum) ? maxNum : undefined,
         });
         setProducts(data.items);
         setTotalProducts(data.total);
@@ -97,23 +103,32 @@ function ProductosContent() {
       }
     };
 
-    // Debounce para la búsqueda
-    const timeout = setTimeout(fetchProducts, searchQuery ? 400 : 0);
+    // Debounce para la búsqueda y precio (evita refetch en cada tecla)
+    const needsDebounce = !!searchQuery || !!minPrice || !!maxPrice;
+    const timeout = setTimeout(fetchProducts, needsDebounce ? 400 : 0);
     return () => clearTimeout(timeout);
-  }, [apiPage, apiLimit, searchQuery, selectedCategory, sortBy]);
+  }, [apiPage, apiLimit, searchQuery, selectedCategory, sortBy, minPrice, maxPrice]);
 
   // Reset página al cambiar filtros
   useEffect(() => {
     setApiPage(1);
-  }, [searchQuery, selectedCategory, sortBy]);
+  }, [searchQuery, selectedCategory, sortBy, minPrice, maxPrice]);
 
   const clearFilters = () => {
+    setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
+  };
+
+  const clearAll = () => {
     setSearchQuery('');
     setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
     setSortBy('nameAsc');
   };
 
-  const hasActiveFilters = !!selectedCategory || sortBy !== 'nameAsc';
+  const hasActiveFilters = !!selectedCategory || !!minPrice || !!maxPrice;
 
   // Categorías que tienen productos (filtrar las que son subcategorías con productos)
   const leafCategories = useMemo(() => {
@@ -130,32 +145,7 @@ function ProductosContent() {
             {totalProducts} producto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Selector de moneda */}
-          <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                currency === 'USD'
-                  ? 'bg-button-green text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <DollarSign size={14} />
-              USD
-            </button>
-            <button
-              onClick={() => setCurrency('Bs')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                currency === 'Bs'
-                  ? 'bg-button-green text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Bs
-            </button>
-          </div>
-        </div>
+        <CurrencyPicker currency={currency} onChange={setCurrency} />
       </div>
 
       {/* Barra de busqueda y filtros */}
@@ -215,36 +205,63 @@ function ProductosContent() {
 
         {/* Panel de filtros expandible */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Categoria */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1.5">Categoria</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green cursor-pointer"
-              >
-                <option value="">Todas las categorías</option>
-                {leafCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name} ({cat.productCount})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Limpiar filtros */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
             {hasActiveFilters && (
-              <div className="flex items-end">
+              <div className="flex justify-end mb-3">
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
+                  className="text-xs text-gray-500 hover:text-gray-700 underline-offset-2 hover:underline"
                 >
-                  <X size={14} />
                   Limpiar filtros
                 </button>
               </div>
             )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Categoría */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">Categoría</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green cursor-pointer"
+                >
+                  <option value="">Todas las categorías</option>
+                  {leafCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({cat.productCount})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Rango de precio (USD) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">Precio (USD)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.5"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    placeholder="Min"
+                    className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green"
+                  />
+                  <span className="text-gray-400 text-sm">—</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.5"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="Max"
+                    className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -381,10 +398,10 @@ function ProductosContent() {
             Intenta con otros terminos de busqueda o ajusta los filtros.
           </p>
           <button
-            onClick={clearFilters}
+            onClick={clearAll}
             className="px-4 py-2 bg-button-green text-white rounded-xl hover:bg-accent-green-dark transition-colors text-sm"
           >
-            Limpiar filtros
+            Limpiar búsqueda y filtros
           </button>
         </div>
       )}

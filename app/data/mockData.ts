@@ -153,7 +153,6 @@ export const mockUsers: User[] = [
 export const mockSupermarkets: Supermarket[] = [
   { id: '1', name: 'Excelsior Gama', color: '#E31837' },
   { id: '2', name: 'Central Madeirense', color: '#0066B3' },
-  { id: '3', name: 'Automercado Plaza\'s', color: '#FF6B00' },
   { id: '4', name: 'Luvebras', color: '#00A651' },
   { id: '5', name: 'Farmatodo', color: '#1E4D92' },
   { id: '6', name: 'Locatel', color: '#E4002B' },
@@ -205,7 +204,6 @@ export const usersPerMonth = [
 export const comparisonsPerSupermarket = [
   { name: 'Excelsior Gama', comparisons: 4521, color: '#E31837' },
   { name: 'Central Madeirense', comparisons: 3892, color: '#0066B3' },
-  { name: 'Plaza\'s', comparisons: 2876, color: '#FF6B00' },
   { name: 'Luvebras', comparisons: 2134, color: '#00A651' },
   { name: 'Farmatodo', comparisons: 1456, color: '#1E4D92' },
   { name: 'Locatel', comparisons: 910, color: '#E4002B' },

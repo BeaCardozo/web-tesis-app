@@ -4,6 +4,7 @@
 // ============================================
 
 import { mockSupermarkets } from './mockData';
+import { formatBs } from '../lib/currency';
 
 // ============================================
 // INTERFACES
@@ -105,7 +106,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 3.50, 0),
       makePrice('2', 3.65, 0),
-      makePrice('3', 3.40, 1),
       makePrice('4', 3.30, 0),
       makePrice('5', 3.75, 1),
     ],
@@ -121,7 +121,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 7.25, 0),
       makePrice('2', 7.50, 0),
-      makePrice('3', 6.90, 1),
       makePrice('4', 7.10, 0),
       makePrice('6', 7.80, 2),
     ],
@@ -137,7 +136,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.40, 0),
       makePrice('2', 2.55, 1),
-      makePrice('3', 2.30, 0),
       makePrice('5', 2.60, 1),
     ],
   },
@@ -167,7 +165,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 5.20, 0),
       makePrice('2', 5.40, 1),
-      makePrice('3', 4.95, 0),
       makePrice('5', 5.50, 2),
     ],
   },
@@ -183,7 +180,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 5.80, 0),
       makePrice('2', 5.60, 0),
-      makePrice('3', 5.95, 1),
       makePrice('4', 5.45, 0),
     ],
   },
@@ -198,7 +194,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 8.50, 1),
       makePrice('2', 8.20, 0),
-      makePrice('3', 8.75, 1),
       makePrice('4', 7.90, 0),
     ],
   },
@@ -228,7 +223,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 1.80, 0),
       makePrice('2', 1.95, 0),
-      makePrice('3', 1.70, 1),
       makePrice('4', 1.65, 0),
     ],
   },
@@ -243,7 +237,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.20, 0),
       makePrice('2', 2.10, 1),
-      makePrice('3', 2.35, 0),
       makePrice('4', 1.95, 0),
     ],
   },
@@ -258,7 +251,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 1.50, 0),
       makePrice('2', 1.60, 1),
-      makePrice('3', 1.45, 0),
       makePrice('4', 1.40, 0),
     ],
   },
@@ -274,7 +266,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 1.80, 0),
       makePrice('2', 1.90, 0),
-      makePrice('3', 1.75, 1),
       makePrice('5', 2.00, 1),
     ],
   },
@@ -289,7 +280,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.50, 0),
       makePrice('2', 2.30, 1),
-      makePrice('3', 2.60, 0),
     ],
   },
   // --- BEBIDAS ---
@@ -304,7 +294,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.50, 0),
       makePrice('2', 2.70, 0),
-      makePrice('3', 2.40, 1),
       makePrice('4', 2.35, 0),
       makePrice('5', 2.80, 1),
     ],
@@ -320,7 +309,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 1.20, 0),
       makePrice('2', 1.30, 0),
-      makePrice('3', 1.15, 1),
       makePrice('4', 1.10, 0),
       makePrice('5', 1.35, 1),
     ],
@@ -336,7 +324,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 3.20, 0),
       makePrice('2', 3.40, 1),
-      makePrice('3', 3.10, 0),
       makePrice('5', 3.50, 1),
     ],
   },
@@ -413,7 +400,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.80, 0),
       makePrice('2', 2.75, 0),
-      makePrice('3', 2.90, 1),
       makePrice('4', 2.60, 0),
     ],
   },
@@ -428,7 +414,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.15, 0),
       makePrice('2', 2.10, 0),
-      makePrice('3', 2.25, 1),
       makePrice('4', 2.00, 0),
       makePrice('5', 2.30, 1),
     ],
@@ -444,7 +429,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 4.25, 0),
       makePrice('2', 4.50, 0),
-      makePrice('3', 4.10, 1),
       makePrice('4', 4.00, 0),
     ],
   },
@@ -459,7 +443,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 1.95, 0),
       makePrice('2', 2.05, 0),
-      makePrice('3', 1.90, 1),
       makePrice('4', 1.85, 0),
     ],
   },
@@ -505,7 +488,6 @@ export const userProducts: UserProduct[] = [
     prices: [
       makePrice('1', 2.90, 0),
       makePrice('2', 3.00, 0),
-      makePrice('3', 2.80, 1),
       makePrice('4', 2.75, 0),
       makePrice('5', 3.10, 1),
     ],
@@ -635,7 +617,7 @@ export function formatTimeAgo(isoDate: string): string {
 /** Formato de precio; `rateUsdToBs` debe venir de `useFx().rateUsdToBs` (ca-api `/meta/fx/current`). */
 export function formatPrice(price: number, currency: 'USD' | 'Bs', rateUsdToBs: number): string {
   if (currency === 'Bs') {
-    return `Bs. ${(price * rateUsdToBs).toFixed(2)}`;
+    return formatBs(price * rateUsdToBs);
   }
   return `$${price.toFixed(2)}`;
 }
