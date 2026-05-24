@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Search,
   Store,
@@ -140,11 +141,13 @@ export default function SupermarketsPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {logo ? (
-                      <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        <img
+                      <div className="relative w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm p-1.5 overflow-hidden flex-shrink-0">
+                        <Image
                           src={logo}
                           alt={sm.name}
-                          className="max-w-full max-h-full object-contain"
+                          fill
+                          sizes="48px"
+                          className="object-contain p-1.5"
                         />
                       </div>
                     ) : (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   TrendingDown,
   ArrowRight,
@@ -282,17 +283,16 @@ export default function InicioPage() {
                   {/* Imagen */}
                   <div className="h-36 bg-white flex items-center justify-center relative overflow-hidden">
                     {product.imageUrl ? (
-                      <img
+                      <Image
                         src={product.imageUrl}
                         alt={product.name}
-                        className="h-full w-full object-contain p-2"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                        }}
+                        fill
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        className="object-contain p-2"
                       />
-                    ) : null}
-                    <Package size={40} className={`text-button-green/40 ${product.imageUrl ? 'hidden' : ''}`} />
+                    ) : (
+                      <Package size={40} className="text-button-green/40" />
+                    )}
                   </div>
                   {/* Info */}
                   <div className="p-4">

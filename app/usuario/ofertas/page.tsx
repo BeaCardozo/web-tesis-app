@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Tag, Package, Loader2, ShoppingCart, TrendingDown } from 'lucide-react';
 import { offersApi, ApiDeal, ApiDealsCount } from '../../lib/api';
 import { ProductOfferPrice } from '../../components/ProductOfferPrice';
@@ -128,17 +129,16 @@ export default function OfertasPage() {
 
               <div className="h-32 bg-white flex items-center justify-center relative overflow-hidden">
                 {deal.imageUrl ? (
-                  <img
+                  <Image
                     src={deal.imageUrl}
                     alt={deal.productName}
-                    className="h-full w-full object-contain p-2"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                    }}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-contain p-2"
                   />
-                ) : null}
-                <Package size={36} className={`text-button-green/40 ${deal.imageUrl ? 'hidden' : ''}`} />
+                ) : (
+                  <Package size={36} className="text-button-green/40" />
+                )}
               </div>
 
               <div className="p-4">

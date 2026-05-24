@@ -12,18 +12,30 @@ import {
   Store,
   ClipboardList,
   TrendingUp,
+  Upload,
+  Package,
+  FileText,
+  Home,
+  Search,
+  ShoppingCart,
+  User,
+  Tag,
+  LayoutGrid,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 
-interface NavItem {
+export interface NavItem {
   name: string;
   href: string;
   icon: React.ReactNode;
 }
 
-const navItems: NavItem[] = [
+// ============================================
+// CONFIGURACIONES DE NAVEGACIÓN POR ROL
+// ============================================
+export const ADMIN_NAV_ITEMS: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard size={22} /> },
   { name: 'Usuarios', href: '/admin/usuarios', icon: <Users size={22} /> },
   { name: 'Supermercados', href: '/admin/supermercados', icon: <Store size={22} /> },
@@ -31,7 +43,32 @@ const navItems: NavItem[] = [
   { name: 'Auditoria', href: '/admin/auditoria', icon: <ClipboardList size={22} /> },
 ];
 
-export function Sidebar() {
+export const ANALISTA_NAV_ITEMS: NavItem[] = [
+  { name: 'Dashboard', href: '/analista/dashboard', icon: <LayoutDashboard size={22} /> },
+  { name: 'Productos', href: '/analista/productos', icon: <Package size={22} /> },
+  { name: 'Cargar Datos', href: '/analista/cargas', icon: <Upload size={22} /> },
+  { name: 'Historial Precios', href: '/analista/historial', icon: <TrendingUp size={22} /> },
+  { name: 'Reportes', href: '/analista/reportes', icon: <FileText size={22} /> },
+];
+
+export const USUARIO_NAV_ITEMS: NavItem[] = [
+  { name: 'Inicio', href: '/usuario/inicio', icon: <Home size={22} /> },
+  { name: 'Productos', href: '/usuario/productos', icon: <Search size={22} /> },
+  { name: 'Categorías', href: '/usuario/categorias', icon: <LayoutGrid size={22} /> },
+  { name: 'Ofertas', href: '/usuario/ofertas', icon: <Tag size={22} /> },
+  { name: 'Carrito', href: '/usuario/carrito', icon: <ShoppingCart size={22} /> },
+  { name: 'Perfil', href: '/usuario/perfil', icon: <User size={22} /> },
+];
+
+interface RoleSidebarProps {
+  items: NavItem[];
+  /** Texto secundario bajo "CaracasAhorra" en el encabezado (ej. "Panel de administracion"). */
+  subtitle: string;
+  /** Si es true, los subpaths como /usuario/producto/[id] resaltan el item "Productos". */
+  matchSubpaths?: boolean;
+}
+
+export function RoleSidebar({ items, subtitle, matchSubpaths = false }: RoleSidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
   const { isCollapsed, toggle, isMobile, setIsCollapsed } = useSidebar();
@@ -96,7 +133,7 @@ export function Sidebar() {
                   <span className="text-white">Caracas</span>
                   <span className="text-primary">Ahorra</span>
                 </p>
-                <p className="text-[11px] text-white/40 mt-0.5">Panel de administracion</p>
+                <p className="text-[11px] text-white/40 mt-0.5">{subtitle}</p>
               </div>
             )}
           </div>
@@ -113,8 +150,10 @@ export function Sidebar() {
         {/* Navegacion */}
         <nav className="flex-1 px-3 pt-8 overflow-y-auto">
           <ul className="space-y-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
+            {items.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (matchSubpaths && pathname.startsWith(item.href + '/'));
               return (
                 <li key={item.href}>
                   <Link

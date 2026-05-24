@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   ShoppingCart,
   Plus,
@@ -24,6 +25,7 @@ import {
   ApiCompareMixedResult,
 } from '../../lib/api';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
+import { Modal, ConfirmDialog } from '../../components/Modal';
 import { useFx } from '../../context/FxContext';
 import { formatBs } from '../../lib/currency';
 
@@ -369,15 +371,14 @@ export default function CarritoPage() {
                   className="bg-white rounded-xl border border-gray-100 p-4"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden">
+                    <div className="relative w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden">
                       {item.product.imageUrl ? (
-                        <img
+                        <Image
                           src={item.product.imageUrl}
                           alt={item.product.name}
-                          className="h-full w-full object-contain p-1"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
+                          fill
+                          sizes="48px"
+                          className="object-contain p-1"
                         />
                       ) : (
                         <Package size={20} className="text-button-green/40" />
@@ -679,71 +680,50 @@ export default function CarritoPage() {
       ) : null}
 
       {/* New cart modal */}
-      {showNewCartModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Nuevo carrito</h3>
-              <button
-                onClick={() => setShowNewCartModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <input
-              type="text"
-              value={newCartName}
-              onChange={(e) => setNewCartName(e.target.value)}
-              placeholder="Nombre del carrito"
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green mb-4"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateCart()}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowNewCartModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateCart}
-                disabled={!newCartName.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-button-green text-white hover:bg-accent-green-dark transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Crear
-              </button>
-            </div>
+      <Modal
+        open={showNewCartModal}
+        onClose={() => setShowNewCartModal(false)}
+        title="Nuevo carrito"
+        size="md"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowNewCartModal(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleCreateCart}
+              disabled={!newCartName.trim()}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-button-green text-white hover:bg-accent-green-dark transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Crear
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <input
+          type="text"
+          value={newCartName}
+          onChange={(e) => setNewCartName(e.target.value)}
+          placeholder="Nombre del carrito"
+          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-button-green/30 focus:border-button-green"
+          autoFocus
+          onKeyDown={(e) => e.key === 'Enter' && handleCreateCart()}
+        />
+      </Modal>
 
       {/* Delete confirm modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Eliminar carrito</h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Esta accion no se puede deshacer. Se eliminaran todos los productos del carrito.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDeleteCart(showDeleteConfirm)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-medium"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null)}
+        onConfirm={() => showDeleteConfirm && handleDeleteCart(showDeleteConfirm)}
+        title="Eliminar carrito"
+        message="Esta accion no se puede deshacer. Se eliminaran todos los productos del carrito."
+        confirmLabel="Eliminar"
+        tone="danger"
+      />
     </div>
   );
 }

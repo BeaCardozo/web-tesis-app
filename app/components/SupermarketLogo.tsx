@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import Image from 'next/image';
 import { Store } from 'lucide-react';
 
 function normalize(s: string): string {
@@ -25,30 +27,31 @@ interface SupermarketLogoProps {
 
 export function SupermarketLogo({ name, size = 40, className = '' }: SupermarketLogoProps) {
   const src = supermarketLogoSrc(name);
+  const [errored, setErrored] = useState(false);
+  const showImage = src != null && !errored;
   const pad = Math.round(size * 0.14);
+  const inner = size - pad * 2;
 
   return (
     <div
       className={`rounded-xl flex items-center justify-center bg-white border border-gray-100 overflow-hidden flex-shrink-0 ${className}`}
       style={{ width: size, height: size }}
     >
-      {src ? (
-        <img
-          src={src}
+      {showImage ? (
+        <Image
+          src={src!}
           alt={name}
-          className="h-full w-full object-contain"
-          style={{ padding: pad }}
-          onError={(e) => {
-            const target = e.currentTarget;
-            target.style.display = 'none';
-            target.nextElementSibling?.classList.remove('hidden');
-          }}
+          width={inner}
+          height={inner}
+          style={{ padding: pad, width: '100%', height: '100%', objectFit: 'contain' }}
+          onError={() => setErrored(true)}
         />
-      ) : null}
-      <Store
-        size={Math.round(size * 0.5)}
-        className={`text-button-green/70 ${src ? 'hidden' : ''}`}
-      />
+      ) : (
+        <Store
+          size={Math.round(size * 0.5)}
+          className="text-button-green/70"
+        />
+      )}
     </div>
   );
 }

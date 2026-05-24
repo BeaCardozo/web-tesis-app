@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { Search, RefreshCw, ShoppingCart, TrendingDown } from 'lucide-react';
 import { Footer } from './components/Footer';
@@ -289,11 +290,13 @@ function HeroIllustration() {
         <div key={idx} className="animate-pop-in">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
-                <img
+              <div className="relative w-12 h-12 overflow-hidden">
+                <Image
                   src={product.img}
                   alt={product.name}
-                  className="w-full h-full object-contain"
+                  fill
+                  sizes="48px"
+                  className="object-contain"
                 />
               </div>
               <div>
@@ -322,14 +325,16 @@ function HeroIllustration() {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0 bg-white ${
+                      className={`relative w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-white ${
                         isWinner ? 'border border-button-green/50 shadow-sm' : 'border border-gray-200'
                       }`}
                     >
-                      <img
+                      <Image
                         src={CHAIN_LOGO_BY_NAME[r.chain]}
                         alt={r.chain}
-                        className="max-h-full max-w-full object-contain p-0.5"
+                        fill
+                        sizes="32px"
+                        className="object-contain p-0.5"
                       />
                     </div>
                     <div>
@@ -409,9 +414,9 @@ function HeroIllustration() {
 // ============================================
 const CHAIN_LOGOS = [
   // height en px: Gama es icon-only (cuadrado), pesa visualmente más → menor
-  { src: '/logos/gama.png', alt: 'Excelsior Gama', h: 'h-9 md:h-10' },
-  { src: '/logos/madeirense.png', alt: 'Central Madeirense', h: 'h-11 md:h-12' },
-  { src: '/logos/plan_suarez.png', alt: 'Plansuarez', h: 'h-11 md:h-12' },
+  { src: '/logos/gama.png', alt: 'Excelsior Gama', h: 'h-9 md:h-10', width: 40, height: 40 },
+  { src: '/logos/madeirense.png', alt: 'Central Madeirense', h: 'h-11 md:h-12', width: 130, height: 48 },
+  { src: '/logos/plan_suarez.png', alt: 'Plansuarez', h: 'h-11 md:h-12', width: 130, height: 48 },
 ];
 
 function TrustBand() {
@@ -441,10 +446,12 @@ function TrustBand() {
         {/* Logos a color, estáticos (derecha) */}
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 md:gap-x-12">
           {CHAIN_LOGOS.map((l) => (
-            <img
+            <Image
               key={l.src}
               src={l.src}
               alt={l.alt}
+              width={l.width}
+              height={l.height}
               className={`${l.h} w-auto object-contain`}
               draggable={false}
             />

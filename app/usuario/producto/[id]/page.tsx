@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import {
   ArrowLeft,
   Package,
@@ -241,17 +242,16 @@ export default function ProductoDetallePage() {
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <div className="h-56 bg-white flex items-center justify-center relative overflow-hidden">
               {product.imageUrl ? (
-                <img
+                <Image
                   src={product.imageUrl}
                   alt={product.name}
-                  className="h-full w-full object-contain p-4"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                  }}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-contain p-4"
                 />
-              ) : null}
-              <Package size={64} className={`text-button-green/40 ${product.imageUrl ? 'hidden' : ''}`} />
+              ) : (
+                <Package size={64} className="text-button-green/40" />
+              )}
               {lowestPromoPct > 0 && (
                 <div className="absolute top-3 right-3 bg-red-500 text-white text-sm font-bold px-3 py-1.5 rounded-xl">
                   Oferta -{lowestPromoPct}%

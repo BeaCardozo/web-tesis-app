@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import {
   Package,
   Tag,
@@ -13,10 +14,10 @@ import {
   Building2,
   TrendingUp,
   Maximize2,
-  X,
 } from 'lucide-react';
 import { analystApi, AnalystDashboard } from '../../lib/api';
 import { supermarketLogoSrc } from '../../components/SupermarketLogo';
+import { DonutChart, FullDonutModal } from '../../components/charts/Donut';
 
 // ============================================
 // COMPONENTES
@@ -68,337 +69,6 @@ function StatCard({
           className={`p-3 rounded-xl ${s.iconWrap} transition-transform duration-300 group-hover:scale-105`}
         >
           <Icon size={22} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Paleta de colores para los segmentos de la dona
-const DONUT_PALETTES = {
-  green: ['#316746', '#437D68', '#77A14B', '#A5C87C', '#BADD71', '#D4ECA5', '#B1C7A1'],
-  blue: ['#1E40AF', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE'],
-} as const;
-
-// Paletas extendidas (con más stops) para cuando se muestran todos los segmentos
-const DONUT_PALETTES_FULL = {
-  green: ['#1F4A33', '#2A5A3F', '#316746', '#3D7457', '#437D68', '#5A9159', '#77A14B', '#8FB85D', '#A5C87C', '#BADD71', '#CEE894', '#D4ECA5'],
-  blue: ['#0F2C6B', '#1E40AF', '#2452C2', '#2563EB', '#3B82F6', '#4F92F7', '#60A5FA', '#7AB5FB', '#93C5FD', '#AFD3FD', '#BFDBFE', '#DBEAFE'],
-} as const;
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '');
-  return [
-    parseInt(h.slice(0, 2), 16),
-    parseInt(h.slice(2, 4), 16),
-    parseInt(h.slice(4, 6), 16),
-  ];
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  const toHex = (n: number) =>
-    Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-// Genera una paleta de N colores interpolando entre los stops dados
-function buildPalette(stops: readonly string[], count: number): string[] {
-  if (count <= 0) return [];
-  if (count === 1) return [stops[0]];
-  const result: string[] = [];
-  const lastStop = stops.length - 1;
-  for (let i = 0; i < count; i++) {
-    const t = (i / (count - 1)) * lastStop;
-    const idx = Math.floor(t);
-    const frac = t - idx;
-    const next = Math.min(idx + 1, lastStop);
-    const [r1, g1, b1] = hexToRgb(stops[idx]);
-    const [r2, g2, b2] = hexToRgb(stops[next]);
-    result.push(
-      rgbToHex(
-        r1 + (r2 - r1) * frac,
-        g1 + (g2 - g1) * frac,
-        b1 + (b2 - b1) * frac,
-      ),
-    );
-  }
-  return result;
-}
-
-function DonutChart({
-  data,
-  palette = 'green',
-  topN = 6,
-}: {
-  data: { name: string; count: number }[];
-  palette?: keyof typeof DONUT_PALETTES;
-  topN?: number;
-}) {
-  const segments = useMemo(() => {
-    const sorted = [...data].sort((a, b) => b.count - a.count);
-    if (sorted.length <= topN) return sorted;
-    const top = sorted.slice(0, topN);
-    const rest = sorted.slice(topN);
-    const restSum = rest.reduce((acc, x) => acc + x.count, 0);
-    return [...top, { name: `Otros (${rest.length})`, count: restSum }];
-  }, [data, topN]);
-
-  const total = segments.reduce((acc, s) => acc + s.count, 0);
-  const colors = DONUT_PALETTES[palette];
-
-  // SVG donut con stroke-dasharray
-  const radius = 56;
-  const circumference = 2 * Math.PI * radius;
-
-  if (total === 0) {
-    return <p className="text-gray-400 text-sm">Sin datos</p>;
-  }
-
-  const arcs = segments.reduce<{ length: number; offset: number }[]>((acc, seg) => {
-    const length = (seg.count / total) * circumference;
-    const prev = acc[acc.length - 1];
-    const offset = prev ? prev.offset + prev.length : 0;
-    acc.push({ length, offset });
-    return acc;
-  }, []);
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center gap-6">
-      {/* Dona */}
-      <div className="relative flex-shrink-0">
-        <svg width="160" height="160" viewBox="0 0 160 160" className="-rotate-90">
-          <circle
-            cx="80"
-            cy="80"
-            r={radius}
-            fill="none"
-            stroke="#F3F4F6"
-            strokeWidth="18"
-          />
-          {segments.map((seg, i) => {
-            const { length, offset } = arcs[i];
-            return (
-              <circle
-                key={i}
-                cx="80"
-                cy="80"
-                r={radius}
-                fill="none"
-                stroke={colors[i % colors.length]}
-                strokeWidth="18"
-                strokeDasharray={`${length} ${circumference - length}`}
-                strokeDashoffset={-offset}
-                strokeLinecap="butt"
-                className="transition-all duration-500"
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold text-gray-800 tabular-nums">
-            {total.toLocaleString()}
-          </span>
-          <span className="text-[11px] uppercase tracking-wider text-gray-400">
-            Total
-          </span>
-        </div>
-      </div>
-
-      {/* Leyenda */}
-      <ul className="flex-1 w-full space-y-2 min-w-0">
-        {segments.map((seg, i) => {
-          const pct = (seg.count / total) * 100;
-          return (
-            <li
-              key={i}
-              className="flex items-center gap-3 text-sm min-w-0"
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                style={{ backgroundColor: colors[i % colors.length] }}
-              />
-              <span className="flex-1 text-gray-700 truncate" title={seg.name}>
-                {seg.name}
-              </span>
-              <span className="text-gray-500 tabular-nums text-xs">
-                {pct.toFixed(1)}%
-              </span>
-              <span className="font-medium text-gray-800 tabular-nums w-12 text-right">
-                {seg.count.toLocaleString()}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function FullDonutModal({
-  open,
-  onClose,
-  title,
-  data,
-  palette = 'green',
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  data: { name: string; count: number }[];
-  palette?: keyof typeof DONUT_PALETTES_FULL;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open, onClose]);
-
-  const { sorted, total, colors } = useMemo(() => {
-    const s = [...data].sort((a, b) => b.count - a.count);
-    const t = s.reduce((acc, x) => acc + x.count, 0);
-    const c = buildPalette(DONUT_PALETTES_FULL[palette], s.length);
-    return { sorted: s, total: t, colors: c };
-  }, [data, palette]);
-
-  if (!open) return null;
-
-  const radius = 90;
-  const stroke = 28;
-  const C = 2 * Math.PI * radius;
-
-  const arcs = sorted.reduce<{ length: number; offset: number }[]>((acc, seg) => {
-    const length = total > 0 ? (seg.count / total) * C : 0;
-    const prev = acc[acc.length - 1];
-    const offset = prev ? prev.offset + prev.length : 0;
-    acc.push({ length, offset });
-    return acc;
-  }, []);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <div
-        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-in fade-in"
-        onClick={onClose}
-      />
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 tracking-tight">
-              {title}
-            </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {sorted.length}{' '}
-              {sorted.length === 1 ? 'segmento' : 'segmentos'} ·{' '}
-              {total.toLocaleString()} en total
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-6">
-          {total === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-12">Sin datos</p>
-          ) : (
-            <>
-              {/* Dona grande centrada */}
-              <div className="flex justify-center mb-8">
-                <div className="relative">
-                  <svg
-                    width="240"
-                    height="240"
-                    viewBox="0 0 240 240"
-                    className="-rotate-90"
-                  >
-                    <circle
-                      cx="120"
-                      cy="120"
-                      r={radius}
-                      fill="none"
-                      stroke="#F3F4F6"
-                      strokeWidth={stroke}
-                    />
-                    {sorted.map((seg, i) => {
-                      const { length, offset } = arcs[i];
-                      return (
-                        <circle
-                          key={i}
-                          cx="120"
-                          cy="120"
-                          r={radius}
-                          fill="none"
-                          stroke={colors[i]}
-                          strokeWidth={stroke}
-                          strokeDasharray={`${length} ${C - length}`}
-                          strokeDashoffset={-offset}
-                          className="transition-all duration-500"
-                        />
-                      );
-                    })}
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-semibold text-gray-800 tabular-nums">
-                      {total.toLocaleString()}
-                    </span>
-                    <span className="text-[11px] uppercase tracking-wider text-gray-400">
-                      Total
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Leyenda en 3 columnas, ordenada por valor */}
-              <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1">
-                {sorted.map((seg, i) => {
-                  const pct = (seg.count / total) * 100;
-                  return (
-                    <li
-                      key={i}
-                      className="flex items-center gap-2.5 text-sm min-w-0 py-2 border-b border-gray-50"
-                    >
-                      <span
-                        className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                        style={{ backgroundColor: colors[i] }}
-                      />
-                      <span
-                        className="flex-1 text-gray-700 truncate"
-                        title={seg.name}
-                      >
-                        {seg.name}
-                      </span>
-                      <span className="text-gray-400 tabular-nums text-xs">
-                        {pct.toFixed(1)}%
-                      </span>
-                      <span className="font-medium text-gray-800 tabular-nums text-xs w-10 text-right">
-                        {seg.count.toLocaleString()}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -492,11 +162,13 @@ export default function AnalistaDashboardPage() {
           {(() => {
             const logo = supermarket.logoUrl || supermarketLogoSrc(supermarket.name);
             return logo ? (
-              <div className="w-16 h-16 rounded-2xl bg-white border border-gray-200 shadow-sm p-2 flex items-center justify-center overflow-hidden">
-                <img
+              <div className="relative w-16 h-16 rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+                <Image
                   src={logo}
                   alt={supermarket.name}
-                  className="max-w-full max-h-full object-contain"
+                  fill
+                  sizes="64px"
+                  className="object-contain p-2"
                 />
               </div>
             ) : (
@@ -691,11 +363,15 @@ export default function AnalistaDashboardPage() {
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-3">
                             {product.imageUrl ? (
-                              <img
-                                src={product.imageUrl}
-                                alt={product.name}
-                                className="w-9 h-9 rounded-lg object-cover bg-gray-50 border border-gray-100"
-                              />
+                              <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                                <Image
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  fill
+                                  sizes="36px"
+                                  className="object-cover"
+                                />
+                              </div>
                             ) : (
                               <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
                                 <ImageIcon size={14} className="text-gray-400" />
