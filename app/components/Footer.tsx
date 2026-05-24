@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShoppingCart, Store, User } from 'lucide-react';
+import { User } from 'lucide-react';
 
 // ============================================
 // FOOTER COMPLETO — páginas públicas (landing, login, register)
@@ -11,15 +11,10 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                <ShoppingCart size={16} className="text-primary-lighter" />
-              </div>
-              <span className="text-lg">
-                <span className="font-bold text-primary-lighter">Caracas</span>
-                <span className="font-bold text-white">Ahorra</span>
-              </span>
-            </div>
+            <span className="text-lg block mb-2">
+              <span className="font-bold text-primary-lighter">Caracas</span>
+              <span className="font-bold text-white">Ahorra</span>
+            </span>
             <p className="text-xs text-white/70 leading-snug">
               Comparador de precios de la canasta alimentaria en supermercados de Caracas.
             </p>
