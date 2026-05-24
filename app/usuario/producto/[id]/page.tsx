@@ -22,7 +22,7 @@ import {
   ApiSupermarketPrice,
   ApiCart,
 } from '../../../lib/api';
-import { formatTimeAgo } from '../../../data/userMockData';
+import { formatTimeAgo } from '../../../lib/date-utils';
 import { ProductOfferPrice } from '../../../components/ProductOfferPrice';
 import { CurrencyPicker } from '../../../components/CurrencyPicker';
 import { useFx } from '../../../context/FxContext';

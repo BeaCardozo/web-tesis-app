@@ -5,17 +5,10 @@ import { useRouter } from 'next/navigation';
 import {
   User,
   Mail,
-  Calendar,
-  Shield,
   LogOut,
   Edit3,
   Check,
   X,
-  HelpCircle,
-  Info,
-  FileText,
-  ShoppingCart,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../lib/api';

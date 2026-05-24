@@ -23,28 +23,24 @@ function captureSessionId(): string {
 }
 
 export function SessionChangeBanner() {
-  const [originalSessionId, setOriginalSessionId] = useState<string | null>(null);
   const [hasChanged, setHasChanged] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  // Capturamos la huella de la sesión al montar
+  // Capturamos la huella de la sesión al montar y escuchamos cambios en
+  // localStorage hechos por OTRAS pestañas. El original vive en el closure
+  // para no necesitar un estado sincrónico extra.
   useEffect(() => {
-    setOriginalSessionId(captureSessionId());
-  }, []);
-
-  // Escuchamos cambios en localStorage hechos por OTRAS pestañas
-  useEffect(() => {
-    if (originalSessionId == null) return;
+    const original = captureSessionId();
     const onStorage = (e: StorageEvent) => {
       if (e.key != null && !TRACKED_KEYS.includes(e.key)) return;
       const current = captureSessionId();
-      if (current !== originalSessionId) {
+      if (current !== original) {
         setHasChanged(true);
       }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [originalSessionId]);
+  }, []);
 
   if (!hasChanged || dismissed) return null;
 

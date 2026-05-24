@@ -493,7 +493,7 @@ export default function AdminPriceHistoryPage() {
     const chainsList = history.chains;
     const out: ChartLineSeries[] = chainsList
       .filter((c) => !hiddenChains.has(c.slug))
-      .map((c, i) => ({
+      .map((c) => ({
         id: c.slug,
         name: c.name,
         color: colorForChain(c.slug, chainsList.findIndex((cc) => cc.slug === c.slug)),

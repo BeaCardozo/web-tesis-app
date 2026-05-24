@@ -12,7 +12,7 @@ import {
   X,
   Loader2,
 } from 'lucide-react';
-import { UserRole } from '../../data/mockData';
+import { UserRole } from '../../types';
 import { adminUsersApi, BackendUser, BackendRole } from '../../lib/api';
 import { Pagination } from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
@@ -67,36 +67,27 @@ function UserModal({
   isSaving: boolean;
   error: string;
 }) {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    role: 'Usuario' as UserRole,
-    isActive: true,
-  });
-
-  useEffect(() => {
-    if (isOpen && user && mode === 'edit') {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email,
-        password: '',
-        role: mapRole(user.role),
-        isActive: user.isActive,
-      });
-    } else if (isOpen && mode === 'create') {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        password: '',
-        role: 'Usuario',
-        isActive: true,
-      });
-    }
-  }, [isOpen, user, mode]);
+  // El padre debe pasar `key` (el id del usuario o 'create') para que este
+  // estado se inicialice fresco cada vez que cambia el usuario editado.
+  const [formData, setFormData] = useState(() =>
+    mode === 'edit' && user
+      ? {
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email,
+          password: '',
+          role: mapRole(user.role),
+          isActive: user.isActive,
+        }
+      : {
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          role: 'Usuario' as UserRole,
+          isActive: true,
+        },
+  );
 
   if (!isOpen) return null;
 
@@ -470,7 +461,7 @@ export default function UsersPage() {
           className="flex items-center gap-2 px-4 py-2.5 bg-button-green text-white rounded-xl hover:bg-accent-green-dark transition-colors"
         >
           <Plus size={20} />
-          Nuevo Usuario
+          Nuevo
         </button>
       </div>
 
@@ -662,25 +653,30 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Modales */}
-      <UserModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSave={handleCreateUser}
-        mode="create"
-        isSaving={isSaving}
-        error={modalError}
-      />
+      {/* Modales (conditional render para que el estado interno arranque fresco) */}
+      {isCreateModalOpen && (
+        <UserModal
+          isOpen
+          onClose={() => setIsCreateModalOpen(false)}
+          onSave={handleCreateUser}
+          mode="create"
+          isSaving={isSaving}
+          error={modalError}
+        />
+      )}
 
-      <UserModal
-        user={editingUser || undefined}
-        isOpen={!!editingUser}
-        onClose={() => setEditingUser(null)}
-        onSave={handleEditUser}
-        mode="edit"
-        isSaving={isSaving}
-        error={modalError}
-      />
+      {editingUser && (
+        <UserModal
+          key={editingUser.id}
+          user={editingUser}
+          isOpen
+          onClose={() => setEditingUser(null)}
+          onSave={handleEditUser}
+          mode="edit"
+          isSaving={isSaving}
+          error={modalError}
+        />
+      )}
 
       <ConfirmModal
         isOpen={!!deletingUser}

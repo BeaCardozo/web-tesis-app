@@ -1,4 +1,4 @@
-import type { AuditLog, AuditAction, UserRole } from '../data/mockData';
+import type { AuditLog, AuditAction, UserRole } from '../types';
 import type { ApiAuditEvent } from './api';
 
 type BackendRoleKey = 'admin' | 'partner' | 'consumer';

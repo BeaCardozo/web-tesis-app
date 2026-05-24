@@ -149,11 +149,18 @@ function DonutChart({
   // SVG donut con stroke-dasharray
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
-  let offsetAccum = 0;
 
   if (total === 0) {
     return <p className="text-gray-400 text-sm">Sin datos</p>;
   }
+
+  const arcs = segments.reduce<{ length: number; offset: number }[]>((acc, seg) => {
+    const length = (seg.count / total) * circumference;
+    const prev = acc[acc.length - 1];
+    const offset = prev ? prev.offset + prev.length : 0;
+    acc.push({ length, offset });
+    return acc;
+  }, []);
 
   return (
     <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -169,11 +176,7 @@ function DonutChart({
             strokeWidth="18"
           />
           {segments.map((seg, i) => {
-            const fraction = seg.count / total;
-            const length = fraction * circumference;
-            const dashArray = `${length} ${circumference - length}`;
-            const dashOffset = -offsetAccum;
-            offsetAccum += length;
+            const { length, offset } = arcs[i];
             return (
               <circle
                 key={i}
@@ -183,8 +186,8 @@ function DonutChart({
                 fill="none"
                 stroke={colors[i % colors.length]}
                 strokeWidth="18"
-                strokeDasharray={dashArray}
-                strokeDashoffset={dashOffset}
+                strokeDasharray={`${length} ${circumference - length}`}
+                strokeDashoffset={-offset}
                 strokeLinecap="butt"
                 className="transition-all duration-500"
               />
@@ -270,7 +273,14 @@ function FullDonutModal({
   const radius = 90;
   const stroke = 28;
   const C = 2 * Math.PI * radius;
-  let accum = 0;
+
+  const arcs = sorted.reduce<{ length: number; offset: number }[]>((acc, seg) => {
+    const length = total > 0 ? (seg.count / total) * C : 0;
+    const prev = acc[acc.length - 1];
+    const offset = prev ? prev.offset + prev.length : 0;
+    acc.push({ length, offset });
+    return acc;
+  }, []);
 
   return (
     <div
@@ -330,11 +340,7 @@ function FullDonutModal({
                       strokeWidth={stroke}
                     />
                     {sorted.map((seg, i) => {
-                      const frac = seg.count / total;
-                      const len = frac * C;
-                      const dash = `${len} ${C - len}`;
-                      const off = -accum;
-                      accum += len;
+                      const { length, offset } = arcs[i];
                       return (
                         <circle
                           key={i}
@@ -344,8 +350,8 @@ function FullDonutModal({
                           fill="none"
                           stroke={colors[i]}
                           strokeWidth={stroke}
-                          strokeDasharray={dash}
-                          strokeDashoffset={off}
+                          strokeDasharray={`${length} ${C - length}`}
+                          strokeDashoffset={-offset}
                           className="transition-all duration-500"
                         />
                       );

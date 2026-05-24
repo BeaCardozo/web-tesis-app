@@ -22,7 +22,6 @@ import { Pagination } from '../../components/Pagination';
 import { ProductOfferPrice } from '../../components/ProductOfferPrice';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { useFx } from '../../context/FxContext';
-import { usePagination } from '../../hooks/usePagination';
 
 type SortOption = 'nameAsc' | 'nameDesc' | 'priceAsc' | 'priceDesc';
 
@@ -32,13 +31,6 @@ const SORT_LABELS: Record<SortOption, string> = {
   priceAsc: 'Precio: Menor a Mayor',
   priceDesc: 'Precio: Mayor a Menor',
 };
-
-function getSavingsText(product: ApiProduct): number {
-  const snap = product.priceSnapshot;
-  if (!snap?.cheapestPriceUsd) return 0;
-  // Sin datos de precio máximo en el snapshot del listado, no podemos calcular ahorro
-  return 0;
-}
 
 export default function ProductosPage() {
   return (

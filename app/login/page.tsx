@@ -29,7 +29,6 @@ function LoginForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    remember: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,20 +108,6 @@ function LoginForm() {
               required
             />
 
-            {/* Recordarme */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="remember"
-                checked={formData.remember}
-                onChange={(e) => setFormData({ ...formData, remember: e.target.checked })}
-                className="w-5 h-5 rounded border-2 border-gray-300 text-accent-green focus:ring-accent-green"
-              />
-              <label htmlFor="remember" className="ml-3 text-gray-700">
-                Recordarme
-              </label>
-            </div>
-
             {/* Botón de login */}
             <Button type="submit" disabled={isLoading}>
               {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -130,13 +115,7 @@ function LoginForm() {
           </form>
 
           {/* Enlaces */}
-          <div className="mt-6 text-center space-y-3">
-            <Link
-              href="/forgot-password"
-              className="block text-accent-olive hover:text-accent-green-dark transition-colors"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
+          <div className="mt-6 text-center">
             <p className="text-gray-600">
               ¿No tienes cuenta?{' '}
               <Link

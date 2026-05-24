@@ -14,14 +14,23 @@ export default function CategoriasPage() {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    setLoadError('');
+    let cancelled = false;
     categoriesApi
       .list()
-      .then(setCategories)
-      .catch((e: unknown) => {
-        setLoadError(e instanceof Error ? e.message : 'Error al cargar categorías');
+      .then((data) => {
+        if (!cancelled) setCategories(data);
       })
-      .finally(() => setIsLoading(false));
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setLoadError(e instanceof Error ? e.message : 'Error al cargar categorías');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filtered = useMemo(() => {

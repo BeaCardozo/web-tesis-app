@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Search, RefreshCw, ShoppingCart, TrendingDown } from 'lucide-react';
+import { Search, RefreshCw, ShoppingCart, TrendingDown } from 'lucide-react';
 import { Footer } from './components/Footer';
 
 // ============================================

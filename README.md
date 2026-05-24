@@ -1,42 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CaracasAhorra — Web (Next.js)
 
-## API (Caracas Ahorra)
+Comparador de precios de la canasta alimentaria en supermercados de Caracas.
+Trabajo de grado · Universidad Metropolitana · David Dávila y Beatriz Cardozo.
 
-- Define **`NEXT_PUBLIC_API_URL`** apuntando solo al **ca-api** Nest (p. ej. `http://localhost:4003/api`). Todas las peticiones del navegador van a esa base.
-- **No** expongas la URL del API de lectura del DWH (ca-scraper, puerto típico `8000`) como variable `NEXT_PUBLIC_*`. Esa integración ocurre en el servidor Nest (`SCRAPER_API_BASE_URL` en ca-api).
-- Comprobación opcional: `npm run check:public-api` (falla si aparecen patrones prohibidos bajo `app/`).
+Este repositorio contiene la **web** (Next.js 16 / React 19 / Tailwind v4).
+La API Nest (`ca-api`) y el pipeline de scraping/DWH (`ca-scraper`) viven en
+repositorios separados.
 
-## Getting Started
+## Requisitos
 
-First, run the development server:
+- Node 20+ (probado con 20.x y 22.x)
+- npm 10+
+- `ca-api` corriendo localmente o accesible vía URL (ver más abajo)
+
+## Setup
 
 ```bash
+git clone <repo>
+cd web-tesis-app
+npm install
+cp .env.example .env.local
+# Edita .env.local si tu ca-api no está en localhost:4003
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Variables de entorno
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Sí | Base del API Nest (`ca-api`). Incluye `/api`. Ej.: `http://localhost:4003/api`. |
 
-## Learn More
+> **Importante:** la web sólo debe hablar con `ca-api`. La URL del DWH/scraper
+> no debe estar expuesta como `NEXT_PUBLIC_*`. La comprobación
+> `npm run check:public-api` falla si aparece un patrón prohibido bajo `app/`.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Script | Hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo en `localhost:3000`. |
+| `npm run build` | Build de producción. |
+| `npm start` | Sirve el build de producción. |
+| `npm run lint` | ESLint sobre todo el árbol. |
+| `npm run check:public-api` | Verifica que el front no exponga la URL del scraper/DWH. |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Arquitectura
 
-## Deploy on Vercel
+```
+app/
+├─ admin/        Páginas del rol Administrador (dashboard, usuarios, supermercados, auditoría, historial)
+├─ analista/     Páginas del rol Analista (dashboard, productos, cargas CSV, historial, reportes)
+├─ usuario/      Páginas del rol Usuario final (inicio, productos, categorías, ofertas, carrito, perfil)
+├─ components/   Componentes compartidos (Sidebar*, Pagination, ProductOfferPrice, FxRateDisplay, etc.)
+├─ context/      React contexts (AuthContext, FxContext, SidebarContext)
+├─ hooks/        Hooks reutilizables (usePagination)
+├─ lib/          Cliente API, mappers, utilidades de fecha/moneda/íconos
+├─ types/        Tipos compartidos (UserRole, AuditLog, etc.)
+├─ login/        Páginas públicas
+├─ register/
+└─ page.tsx      Landing
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+La autenticación usa **access + refresh JWT** guardados en `localStorage`, con
+refresh proactivo basado en `exp`. La detección de cambio de sesión en otra
+pestaña vive en `components/SessionChangeBanner`. La tasa USD→Bs se obtiene
+de `ca-api` `/meta/fx/current` y se cachea localmente (`context/FxContext`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Documentación operacional
+
+En `docs/` hay checklists de tráfico de red por rol — útiles cuando se
+verifica integración con `ca-api`:
+
+- `docs/PUBLIC_NETWORK_CHECKLIST.md`
+- `docs/USUARIO_NETWORK_CHECKLIST.md`
+- `docs/ANALISTA_NETWORK_CHECKLIST.md`
+- `docs/ADMIN_NETWORK_CHECKLIST.md`
+
+## Despliegue
+
+El despliegue recomendado es Vercel; al ser una app Next.js estándar,
+cualquier host que soporte Node 20+ funciona. Sólo hay que definir
+`NEXT_PUBLIC_API_URL` apuntando al `ca-api` correspondiente.

@@ -18,7 +18,6 @@ import {
 import {
   analystApi,
   AnalystPriceHistory,
-  AnalystPriceHistoryPoint,
   AnalystProduct,
 } from '../../lib/api';
 import { parseDayLocal } from '../../lib/date-utils';

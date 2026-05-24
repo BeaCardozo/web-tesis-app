@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '../data/mockData';
+import { User, UserRole } from '../types';
 import { authApi, BackendUser, clearTokens, getMeForRestore, tryRefreshAccessToken } from '../lib/api';
 
 // ============================================

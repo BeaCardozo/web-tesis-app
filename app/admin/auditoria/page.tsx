@@ -19,7 +19,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { AuditLog, AuditAction } from '../../data/mockData';
+import { AuditLog, AuditAction } from '../../types';
 import { Pagination } from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 import { adminAuditApi, ApiAuditEvent } from '../../lib/api';

@@ -20,7 +20,6 @@ import {
   ApiCategory,
 } from '../../lib/api';
 import { getCategoryIcon } from '../../lib/categoryIcons';
-import { formatBs } from '../../lib/currency';
 import { ProductOfferPrice } from '../../components/ProductOfferPrice';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { useAuth } from '../../context/AuthContext';
@@ -111,11 +110,6 @@ export default function InicioPage() {
       .sort((a, b) => b.productCount - a.productCount)
       .slice(0, 5);
   }, [categories]);
-
-  const formatCurrency = (usd: number) => {
-    if (currency === 'Bs') return formatBs(usd * rateUsdToBs);
-    return `$${usd.toFixed(2)}`;
-  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
