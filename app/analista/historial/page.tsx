@@ -508,7 +508,9 @@ export default function PriceHistoryPage() {
     return products.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, searchTerm]);
 
-  const series = history?.series ?? [];
+  // `useMemo` para que la referencia sea estable cuando `history` no cambia;
+  // así los `useMemo` que dependen de `series` no se invalidan cada render.
+  const series = useMemo(() => history?.series ?? [], [history]);
 
   const hasCompetition = series.some((p) => p.avgCompetition != null);
 

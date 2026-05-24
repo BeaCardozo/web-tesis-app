@@ -52,7 +52,6 @@ export default function ProductsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [reloadToken, setReloadToken] = useState(0);
 
   // Debounce para búsqueda
   useEffect(() => {
@@ -81,7 +80,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, debouncedSearch, reloadToken]);
+  }, [page, limit, debouncedSearch]);
 
   useEffect(() => {
     fetchProducts();
@@ -168,7 +167,7 @@ export default function ProductsPage() {
           </div>
           <button
             type="button"
-            onClick={() => setReloadToken((t) => t + 1)}
+            onClick={() => fetchProducts()}
             className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-red-200 text-sm font-medium hover:bg-red-100/50 transition-colors"
           >
             Reintentar

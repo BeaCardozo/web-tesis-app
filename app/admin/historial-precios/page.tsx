@@ -480,8 +480,10 @@ export default function AdminPriceHistoryPage() {
     return products.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, searchTerm]);
 
-  const seriesData = history?.series ?? [];
-  const chartDays = seriesData.map((s) => s.day);
+  // `useMemo` para que la referencia sea estable cuando `history` no cambia;
+  // así los `useMemo` que dependen de `seriesData` no se invalidan cada render.
+  const seriesData = useMemo(() => history?.series ?? [], [history]);
+  const chartDays = useMemo(() => seriesData.map((s) => s.day), [seriesData]);
 
   // Color por cadena: mapping fijo + fallback
   const colorForChain = (slug: string, idx: number): string =>

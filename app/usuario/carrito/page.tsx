@@ -137,6 +137,11 @@ export default function CarritoPage() {
       return;
     }
     fetchComparison(activeCartId, comparisonMode);
+    // Dependemos de `activeCart.id` y `activeCart.items.length` (no del objeto
+    // entero) porque queremos re-comparar sólo cuando cambia el carrito o el
+    // número de items, no en cada nueva referencia del objeto que devuelva
+    // `fetchCart`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeCartId,
     activeCart?.id,
