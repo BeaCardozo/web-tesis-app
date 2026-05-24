@@ -15,11 +15,6 @@ const TYPE_TO_ACTION: Record<string, AuditAction> = {
   'admin.user.removed': 'user_deleted',
   'admin.user.status_toggled': 'user_status_changed',
   'admin.user.supermarket_assigned': 'user_supermarket_assigned',
-  // admin / supermarkets
-  'admin.supermarket.created': 'supermarket_created',
-  'admin.supermarket.updated': 'supermarket_updated',
-  'admin.supermarket.status_toggled': 'supermarket_status_changed',
-  'admin.supermarket.removed': 'supermarket_deleted',
   // pipeline (ca-scraper)
   'pipeline.dag.completed': 'pipeline_success',
   'pipeline.dag.failed': 'pipeline_failed',

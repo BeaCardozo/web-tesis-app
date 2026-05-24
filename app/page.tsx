@@ -540,13 +540,13 @@ function HowItWorks() {
       <div className="max-w-6xl mx-auto px-6">
         <Reveal className="text-center max-w-2xl mx-auto mb-10">
           <p className="inline-block text-xs font-semibold text-accent-green-dark uppercase tracking-wider mb-3 px-3 py-1 rounded-full bg-white/70 border border-button-green/30">
-            Cómo funciona
+            ¿Cómo funciona?
           </p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
             Tres pasos para encontrar la mejor compra
           </h2>
           <p className="mt-4 text-lg text-gray-600">
-            Desde un catálogo curado hasta tu carrito optimizado, todo automatizado.
+            Desde un gran catálogo hasta tu carrito optimizado, todo a tu alcance.
           </p>
         </Reveal>
 

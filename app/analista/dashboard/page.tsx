@@ -480,7 +480,6 @@ export default function AnalistaDashboardPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header del supermercado */}
       <div className="relative overflow-hidden bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-gray-100">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent-pastel to-primary-lighter" />
         <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-gradient-to-br from-primary/15 to-transparent pointer-events-none" />
 
         <div className="relative flex items-center gap-5">

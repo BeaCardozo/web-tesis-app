@@ -463,10 +463,6 @@ export type AuditAction =
   | 'user_deleted'
   | 'user_status_changed'
   | 'user_supermarket_assigned'
-  | 'supermarket_created'
-  | 'supermarket_updated'
-  | 'supermarket_status_changed'
-  | 'supermarket_deleted'
   | 'pipeline_success'
   | 'pipeline_failed'
   | 'data_uploaded'
@@ -546,19 +542,6 @@ export const auditLogs: AuditLog[] = [
     timestamp: '2025-01-13 09:15:00',
   },
   {
-    id: 'log6',
-    action: 'supermarket_updated',
-    userId: '1',
-    userName: 'Admin Principal',
-    userRole: 'Administrador',
-    targetType: 'supermarket',
-    targetId: '1',
-    targetName: 'Excelsior Gama',
-    details: 'Color actualizado',
-    ipAddress: '192.168.1.100',
-    timestamp: '2025-01-12 11:30:00',
-  },
-  {
     id: 'log7',
     action: 'data_uploaded',
     userId: '9',
@@ -592,19 +575,6 @@ export const auditLogs: AuditLog[] = [
     details: 'Rol cambiado de Usuario a Analista',
     ipAddress: '192.168.1.100',
     timestamp: '2025-01-10 15:45:00',
-  },
-  {
-    id: 'log10',
-    action: 'supermarket_created',
-    userId: '1',
-    userName: 'Admin Principal',
-    userRole: 'Administrador',
-    targetType: 'supermarket',
-    targetId: '6',
-    targetName: 'Locatel',
-    details: 'Nuevo supermercado agregado al sistema',
-    ipAddress: '192.168.1.100',
-    timestamp: '2025-01-10 10:00:00',
   },
   {
     id: 'log11',

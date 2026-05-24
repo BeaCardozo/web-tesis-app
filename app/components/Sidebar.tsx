@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   LogOut,
-  ShoppingCart,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -83,9 +82,14 @@ export function Sidebar() {
         {/* Logo */}
         <div className={`shrink-0 ${expanded ? 'px-6 py-6' : 'px-3 py-6 flex justify-center'}`}>
           <div className={`flex items-center ${expanded ? 'gap-3' : ''}`}>
-            <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
-              <ShoppingCart className="text-primary" size={20} />
-            </div>
+            {!expanded && (
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+                <span className="font-bold text-[15px] tracking-tight">
+                  <span className="text-white">C</span>
+                  <span className="text-primary">A</span>
+                </span>
+              </div>
+            )}
             {expanded && (
               <div>
                 <p className="font-bold text-[17px] tracking-tight leading-tight">

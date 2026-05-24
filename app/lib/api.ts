@@ -368,22 +368,6 @@ export interface AdminSupermarket {
   analystCount: number;
 }
 
-export interface CreateSupermarketPayload {
-  name: string;
-  slug?: string;
-  logoUrl?: string;
-  website?: string;
-  isActive?: boolean;
-}
-
-export interface UpdateSupermarketPayload {
-  name?: string;
-  slug?: string;
-  logoUrl?: string;
-  website?: string;
-  isActive?: boolean;
-}
-
 export const adminSupermarketsApi = {
   async list(): Promise<AdminSupermarket[]> {
     const res = await authFetch(`${API_BASE_URL}/supermarkets/admin`);
@@ -393,54 +377,6 @@ export const adminSupermarketsApi = {
     }
     const json: ApiResponse<AdminSupermarket[]> = await res.json();
     return json.data;
-  },
-
-  async create(data: CreateSupermarketPayload): Promise<AdminSupermarket> {
-    const res = await authFetch(`${API_BASE_URL}/supermarkets`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(parseApiErrorMessage(error, 'Error al crear supermercado'));
-    }
-    const json: ApiResponse<AdminSupermarket> = await res.json();
-    return json.data;
-  },
-
-  async update(id: string, data: UpdateSupermarketPayload): Promise<AdminSupermarket> {
-    const res = await authFetch(`${API_BASE_URL}/supermarkets/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(parseApiErrorMessage(error, 'Error al actualizar supermercado'));
-    }
-    const json: ApiResponse<AdminSupermarket> = await res.json();
-    return json.data;
-  },
-
-  async toggleStatus(id: string): Promise<AdminSupermarket> {
-    const res = await authFetch(`${API_BASE_URL}/supermarkets/${id}/status`, {
-      method: 'PATCH',
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(parseApiErrorMessage(error, 'Error al cambiar estado'));
-    }
-    const json: ApiResponse<AdminSupermarket> = await res.json();
-    return json.data;
-  },
-
-  async remove(id: string): Promise<void> {
-    const res = await authFetch(`${API_BASE_URL}/supermarkets/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(parseApiErrorMessage(error, 'Error al eliminar supermercado'));
-    }
   },
 };
 

@@ -431,9 +431,6 @@ export default function ProductoDetallePage() {
                           <SupermarketLogo name={price.supermarketName} size={40} />
                           <div>
                             <p className="font-medium text-gray-800">{price.supermarketName}</p>
-                            {price.storeName && (
-                              <p className="text-xs text-gray-400">{price.storeName}</p>
-                            )}
                             {price.scrapedAt && (
                               <div className="flex items-center gap-1 mt-0.5">
                                 <Clock size={12} className="text-gray-400" />

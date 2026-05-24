@@ -10,7 +10,6 @@ import {
   Edit2,
   Upload,
   Shield,
-  Store,
   Clock,
   Activity,
   RefreshCw,
@@ -42,10 +41,6 @@ const actionConfig: Record<AuditAction, { label: string; icon: React.ElementType
   user_deleted: { label: 'Usuario eliminado', icon: UserMinus, color: 'text-red-600', bgColor: 'bg-red-100' },
   user_status_changed: { label: 'Estado cambiado', icon: Shield, color: 'text-orange-600', bgColor: 'bg-orange-100' },
   user_supermarket_assigned: { label: 'Cadena asignada', icon: LinkIcon, color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
-  supermarket_created: { label: 'Supermercado creado', icon: Store, color: 'text-green-600', bgColor: 'bg-green-100' },
-  supermarket_updated: { label: 'Supermercado actualizado', icon: Store, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-  supermarket_status_changed: { label: 'Cadena: estado cambiado', icon: Shield, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  supermarket_deleted: { label: 'Supermercado eliminado', icon: Store, color: 'text-red-600', bgColor: 'bg-red-100' },
   pipeline_success: { label: 'Pipeline OK', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
   pipeline_failed: { label: 'Pipeline falló', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
   data_uploaded: { label: 'Datos cargados', icon: Upload, color: 'text-purple-600', bgColor: 'bg-purple-100' },
@@ -65,16 +60,6 @@ const actionCategories = [
       'user_deleted',
       'user_status_changed',
       'user_supermarket_assigned',
-    ],
-  },
-  {
-    value: 'supermarkets',
-    label: 'Supermercados',
-    actions: [
-      'supermarket_created',
-      'supermarket_updated',
-      'supermarket_status_changed',
-      'supermarket_deleted',
     ],
   },
   { value: 'pipeline', label: 'Pipeline', actions: ['pipeline_success', 'pipeline_failed'] },
@@ -580,14 +565,16 @@ function EventDetailDrawer({
               </h4>
               <dl className="space-y-2 text-sm">
                 <DrawerRow label="Cuándo">
-                  {new Date(log.timestamp).toLocaleString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })}
+                  <span className="text-gray-800">
+                    {new Date(log.timestamp).toLocaleString('es-ES', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </span>
                 </DrawerRow>
                 <DrawerRow label="Actor">
                   <span className="font-medium text-gray-800">{log.userName}</span>

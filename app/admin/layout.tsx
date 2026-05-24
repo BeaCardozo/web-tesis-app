@@ -59,7 +59,7 @@ export default function AdminLayout({
             : 'ml-[272px]'
       }`}>
         <div className="flex-1 px-6 pt-10 pb-6">
-          <div className="flex justify-end mb-4">
+          <div className="max-w-5xl mx-auto flex justify-end mb-4">
             <FxRateDisplay />
           </div>
           {children}
