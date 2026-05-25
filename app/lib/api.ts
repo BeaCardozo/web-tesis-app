@@ -967,8 +967,6 @@ export interface ApiCart {
 export interface ApiCartItem {
   id: string;
   quantity: number;
-  preferredSupermarketId: string | null;
-  preferredSupermarket: { id: string; name: string } | null;
   product: {
     id: string;
     name: string;
@@ -1153,7 +1151,7 @@ export const cartsApi = {
     return json.data;
   },
 
-  async addItem(cartId: string, data: { productId: string; quantity: number; supermarketId?: string }): Promise<ApiCartItem> {
+  async addItem(cartId: string, data: { productId: string; quantity: number }): Promise<ApiCartItem> {
     const res = await authFetch(`${API_BASE_URL}/carts/${cartId}/items`, {
       method: 'POST',
       body: JSON.stringify(data),
