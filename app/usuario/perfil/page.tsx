@@ -5,14 +5,20 @@ import { useRouter } from 'next/navigation';
 import {
   User,
   Mail,
+  Calendar,
+  Shield,
   LogOut,
   Edit3,
   Check,
   X,
+  HelpCircle,
+  Info,
+  FileText,
+  ShoppingCart,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../lib/api';
-import { Modal, ConfirmDialog } from '../../components/Modal';
 
 export default function PerfilPage() {
   const { user, logout, refreshProfile } = useAuth();
@@ -187,50 +193,67 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Cerrar sesion */}
-      <div className="flex justify-center">
-        <button
-          onClick={() => setShowLogoutConfirm(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-red-500 text-white text-sm rounded-xl hover:bg-red-600 transition-colors font-medium shadow-sm"
-        >
-          <LogOut size={16} />
-          Cerrar sesion
-        </button>
-      </div>
+      @
 
       <p className="text-center text-xs text-gray-400 pb-4">
         CaracasAhorra v1.0.0 - Universidad Metropolitana
       </p>
 
       {/* Modal confirmar logout */}
-      <ConfirmDialog
-        open={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
-        onConfirm={handleLogout}
-        title="Cerrar sesion"
-        message="Estas seguro de que deseas cerrar tu sesion?"
-        confirmLabel="Cerrar sesion"
-        tone="danger"
-      />
-
-      {/* Modal acerca de */}
-      <Modal
-        open={showAbout}
-        onClose={() => setShowAbout(false)}
-        title="Acerca de CaracasAhorra"
-        size="md"
-      >
-        <div className="text-center py-2">
-          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-            Aplicacion de comparación de precios de supermercados en Caracas.
-          </p>
-          <div className="text-xs text-gray-400 space-y-1 bg-gray-50 rounded-xl p-4">
-            <p>Desarrollado por:</p>
-            <p className="font-medium text-gray-600">Beatriz Cardozo y David Dávila</p>
-            <p>Universidad Metropolitana - 2026</p>
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <LogOut size={22} className="text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-2 text-center">Cerrar sesion</h3>
+            <p className="text-gray-500 text-sm mb-5 text-center">
+              Estas seguro de que deseas cerrar tu sesion?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-medium"
+              >
+                Cerrar sesion
+              </button>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
+
+      {/* Modal acerca de */}
+      {showAbout && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 overflow-hidden relative">
+            <div className="flex items-center justify-between mb-4 mt-1">
+              <h3 className="text-lg font-bold text-gray-800">Acerca de CaracasAhorra</h3>
+              <button
+                onClick={() => setShowAbout(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                Aplicacion de comparación de precios de supermercados en Caracas.
+              </p>
+              <div className="text-xs text-gray-400 space-y-1 bg-gray-50 rounded-xl p-4">
+                <p>Desarrollado por:</p>
+                <p className="font-medium text-gray-600">Beatriz Cardozo y David Dávila</p>
+                <p>Universidad Metropolitana - 2026</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
