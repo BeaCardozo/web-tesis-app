@@ -23,6 +23,7 @@ function LoginForm() {
   const { login, isLoading } = useAuth();
 
   const justRegistered = searchParams.get('registered') === 'true';
+  const justReset = searchParams.get('reset') === 'true';
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -79,6 +80,13 @@ function LoginForm() {
               </div>
             )}
 
+            {/* Mensaje de contraseña restablecida */}
+            {justReset && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                Contraseña restablecida exitosamente. Inicia sesión con tu nueva contraseña.
+              </div>
+            )}
+
             {/* Mensaje de error */}
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
@@ -115,7 +123,15 @@ function LoginForm() {
           </form>
 
           {/* Enlaces */}
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
+            <p>
+              <Link
+                href="/olvide-contrasena"
+                className="text-sm text-accent-olive hover:text-accent-green-dark transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </p>
             <p className="text-gray-600">
               ¿No tienes cuenta?{' '}
               <Link

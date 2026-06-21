@@ -269,6 +269,32 @@ export const authApi = {
     const json: ApiResponse<BackendUser> = await res.json();
     return json.data;
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'Error al enviar el correo'));
+    }
+    const json: ApiResponse<{ message: string }> = await res.json();
+    return json.data;
+  },
+
+  async resetPassword(email: string, code: string, password: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, password }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(parseApiErrorMessage(error, 'El código es inválido o ha expirado'));
+    }
+  },
 };
 
 // ============================================
